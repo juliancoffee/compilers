@@ -231,39 +231,39 @@ record Keyword(String keyword) implements Token {
     }
 }
 
-record Ident(String name) implements Token {
+record Ident(String ident) implements Token {
     @Override
     public String toString() {
-        return "Ident: " + '"' + name + '"';
+        return "Ident: " + '"' + ident + '"';
     }
 }
 
-record IntLiteral(String num) implements Token {
+record IntLiteral(String intLiteral) implements Token {
     @Override
     public String toString() {
-        return "Int: " + '"' + num + '"';
+        return "Int: " + '"' + intLiteral + '"';
     }
 }
 
-record FloatLiteral(String num) implements Token {
+record FloatLiteral(String floatLiteral) implements Token {
     @Override
     public String toString() {
-        return "Float: " + '"' + num + '"';
+        return "Float: " + '"' + floatLiteral + '"';
     }
 }
 
-record StrLiteral(String value) implements Token {
+record StrLiteral(String strLiteral) implements Token {
     @Override
     public String toString() {
-        return "Str: " + '"' + value + '"';
+        return "Str: " + '"' + strLiteral + '"';
     }
 }
 
-record Symbol(String value) implements Token {
+record Symbol(String symbol) implements Token {
     @Override
     public String toString() {
-        var symbol = value.replace("\n", "\\n");
-        return "Symbol: " + '"' + symbol + '"';
+        var theSymbol = symbol.replace("\n", "\\n");
+        return "Symbol: " + '"' + theSymbol + '"';
     }
 }
 

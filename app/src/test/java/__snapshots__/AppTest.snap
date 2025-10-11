@@ -4,16 +4,16 @@ AppTest.appOk=[
       "keyword": "let"
     },
     "(1, 5)": {
-      "name": "x"
+      "ident": "x"
     },
     "(1, 7)": {
-      "value": "="
+      "symbol": "="
     },
     "(1, 9)": {
-      "num": "5"
+      "intLiteral": "5"
     },
     "(1, 10)": {
-      "value": ";"
+      "symbol": ";"
     }
   }
 ]
