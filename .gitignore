@@ -6,3 +6,6 @@ JFLAP7.1.jar
 
 # Ignore Gradle build output directory
 build
+
+# Ignore failed snapshots
+*.snap.debug
