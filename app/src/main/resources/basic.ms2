@@ -1,0 +1,112 @@
+let greeting: String = "Hello, yall!";
+let counter: Int = 0;
+let pi: Double = 3.14;
+let flag: Bool = true;
+
+
+// додавання двох чисел
+func add(a: Int, b: Int) -> Int {
+    return a + b;
+}
+// функція з Void
+func greetUser(name: String) {
+    print("Hello, ", name);
+}
+// порожня функція з явним Void
+func noop() -> Void {}
+
+
+func main() {
+    print(greeting);
+
+
+    // Введення з консолі
+    let name = input();
+    greetUser(name);
+
+
+    let emptiness: Void = noop();
+    print("Nothing is ..", emptiness);
+
+
+    // Цикл for з range
+    for i in range(0, 5, 1) {
+        print("For loop iteration: ", i);
+    }
+
+
+    // Цикл for по рядку
+    let word: String = "Bye!";
+    for ch in word {
+        print("Char: ", ch);
+    }
+
+
+    // Цикл while
+    var counter = 0;
+    while counter < 3 {
+        print("Counter = " + counter);
+        counter = counter + 1;
+    }
+
+
+    // Умовне розгалуження if-else
+    if flag && (pi > 3.0) {
+        print("Flag is true and pi > 3");
+    } else {
+        print("Condition not met");
+    }
+
+
+    // Використання switch
+    let choice: Int = 2;
+    switch choice {
+        case 0, 1 {
+            print("Choice is 0 or 1");
+        }
+        case range(2, 4) {
+            print("Choice is 2 or 3");
+        }
+        default {
+            print("Choice is something else");
+        }
+    }
+
+
+    // Виклик функції add
+    var sum: Int = add(10, 20);
+    print("Sum = ", sum);
+
+
+    // Логічні вирази
+    var isBig: Bool = sum > 25 && flag || !flag;
+    print("isBig = ", isBig);
+    let a: Int = 5;
+    let b: Int = 10;
+    if a == b {
+        print("equal");
+    }
+    if a != b {
+        print("not equal");
+    }
+    if a < b {
+        print("less");
+    }
+    if a <= b {
+        print("less or equal");
+    }
+    if a > b {
+        print("greater");
+    }
+    if a >= b {
+        print("greater or equal");
+    }
+    // Арифметичні вирази
+    var result: Double = (pi + 2.0) * 3.0 / 2.0 - 1.0;
+    print("Result = ", result);
+
+
+    let radius = 3.0;
+    let area = pi * radius ** 2;
+    print("Area = ", area);
+}
