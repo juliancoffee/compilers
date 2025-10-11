@@ -34,7 +34,40 @@ enum CharClass {
     // division or comment
     SLASH,
     // wildcard
-    OTHER
+    OTHER;
+
+    static CharClass classOfChar(Character c) {
+        // First, check for character groups (letters and digits)
+        if (Character.isLetter(c)) return LETTER;
+        if (Character.isDigit(c)) return DIGIT;
+
+        // Then, switch on specific single characters
+        return switch (c) {
+            case '.' -> DOT;
+            case '"' -> QUOTE;
+            case '\n', '\r' -> NL;
+            case ' ', '\t' -> WS;
+            case '+' -> PLUS;
+            case '-' -> MINUS;
+            case ',' -> COMMA;
+            case ':' -> COLON;
+            case ';' -> SEMICOLON;
+            case '(' -> LPAREN;
+            case ')' -> RPAREN;
+            case '{' -> LBRACE;
+            case '}' -> RBRACE;
+            case '=' -> EQUALS;
+            case '<' -> LESS;
+            case '>' -> GREATER;
+            case '!' -> NOT;
+            case '&' -> AMPERSAND;
+            case '|' -> PIPE;
+            case '*' -> STAR;
+            case '/' -> SLASH;
+            // Any other character is considered unclassifiable and throws an exception.
+            default -> throw new IllegalArgumentException("Cannot classify character: '" + c + "'");
+        };
+    }
 }
 
 record StateBranch(Integer thisState, CharClass nextChar, Integer nextState) {
@@ -67,6 +100,17 @@ class STF {
             .create();
 
         return gson.toJson(this);
+    }
+
+    int nextState(int thisState, CharClass cls) {
+        return this.transitions.getOrDefault(
+            new Pair<>(thisState, cls),
+            // All characters naturally belong to some class, but
+            // not all classes can be expected here.
+            //
+            // In such cases, we try the special wildcard OTHER case
+            this.transitions.get(new Pair<>(thisState, CharClass.OTHER))
+        );
     }
 
     static STF buildTable() {
@@ -172,7 +216,6 @@ class STF {
 
 }
 
-record Span(Integer line, Integer character) {}
 sealed interface Token permits
     Keyword,
     Ident,
@@ -181,12 +224,48 @@ sealed interface Token permits
     StrLiteral,
     Symbol {}
 
-record Keyword(String keyword) implements Token {}
-record Ident(String name) implements Token {}
-record IntLiteral(int value) implements Token {}
-record FloatLiteral(double value) implements Token {}
-record StrLiteral(String value) implements Token {}
-record Symbol(String value) implements Token {}
+record Keyword(String keyword) implements Token {
+    @Override
+    public String toString() {
+        return "Keyword: " + '"' + keyword + '"';
+    }
+}
+
+record Ident(String name) implements Token {
+    @Override
+    public String toString() {
+        return "Ident: " + '"' + name + '"';
+    }
+}
+
+record IntLiteral(String num) implements Token {
+    @Override
+    public String toString() {
+        return "Int: " + '"' + num + '"';
+    }
+}
+
+record FloatLiteral(String num) implements Token {
+    @Override
+    public String toString() {
+        return "Float: " + '"' + num + '"';
+    }
+}
+
+record StrLiteral(String value) implements Token {
+    @Override
+    public String toString() {
+        return "Str: " + '"' + value + '"';
+    }
+}
+
+record Symbol(String value) implements Token {
+    @Override
+    public String toString() {
+        var symbol = value.replace("\n", "\\n");
+        return "Symbol: " + '"' + symbol + '"';
+    }
+}
 
 public class Lexer {
     /*
@@ -194,19 +273,159 @@ public class Lexer {
      */
     static final int initState = 0;
     static final Set<Integer> statesEnd = Set.of(2, 3, 7, 8, 11, 12, 14, 15, 17, 18, 20, 23, 25, 26, 101, 102, 103, 104);
-    static final Set<Integer> statesSpecial = Set.of(2, 7, 8, 12, 18, 23, 26);
+    static final Set<Integer> statesEndSpecial = Set.of(2, 7, 8, 12, 18, 23, 26);
     static final Set<Integer> statesError = Set.of(101, 102, 103, 104);
     static final STF stf = STF.buildTable();
-
+    static Set<String> keywords = Set.of(
+        // declarators
+        "var", "let",
+        // input
+        "input",
+        // control flow
+        "if", "else", "switch", "case", "default",
+        // loops
+        "for", "while", "in", "range",
+        // func
+        "func", "return",
+        // print
+        "print",
+        // types
+        "Void", "Int", "Double", "String", "Bool"
+    );
     /*
      * Lexer state
      */
     int numChar = 0;
-    int numLine = 1;
-    TreeMap<Span, Token> tokenTable = new TreeMap<>();
+    int lineCounter = 1;
+    int state = Lexer.initState;
+    String lexemeBuffer = "";
+    public TreeMap<Pair<Integer, Integer>, Token> tokenTable = new TreeMap<>();
+
+    /*
+     * Lexer data
+     */
+    // Preferably access this thing via nextChar() only, or things may break
+    String _sourceCode;
+
+    /*
+     * Here go dragons
+     */
+
+    // Get the next char and manage the lexer inner state
+    //
+    // Will return null if source code ends
+    Character nextChar() {
+        try {
+            var ch = this._sourceCode.charAt(numChar);
+            this.numChar++;
+            if (ch == '\n') {
+                this.lineCounter++;
+            }
+
+            return ch;
+        } catch (StringIndexOutOfBoundsException e) {
+            return null;
+        }
+    }
+
+    // Get the next state from current state and the next character's class
+    int nextState(int thisState, CharClass cls) {
+        return this.stf.nextState(thisState, cls);
+    }
+
+    // Does the thing
+    public void lex() {
+        while (true) {
+            System.out.println("======== " + this.numChar + " state: " + this.state);
+            var ch = nextChar();
+            if (ch == null) {
+                System.out.println("the end");
+                return;
+            }
+
+            System.out.println("ch: " + ch);
+
+            var cls = CharClass.classOfChar(ch);
+            System.out.println(cls);
+            this.state = nextState(state, cls);
+
+            System.out.println("nexState: " + this.state);
+            System.out.println("lexeme: " + this.lexemeBuffer);
+
+            this.lexemeBuffer += ch;
+            if (statesEnd.contains(this.state)) {
+                semanticallyProcess();
+            } else if (this.state == Lexer.initState) {
+                this.lexemeBuffer = "";
+            } else {
+                // this.lexemeBuffer += ch;
+            }
+        }
+    }
+
+    void semanticallyProcess() {
+        if (statesError.contains(this.state)) {
+            throw new RuntimeException(
+                "E" + this.state + ": on" + this.lineCounter
+            );
+        }
+
+        // Put the peeked character back, if needed
+        if (statesEndSpecial.contains(this.state)) {
+            // FIXME: handle newlines?
+            this.numChar -= 1;
+            this.lexemeBuffer = this.lexemeBuffer.substring(
+                0,
+                this.lexemeBuffer.length() - 1
+            );
+        }
+
+        // Locate the span
+        // FIXME: find the token's begining
+        var span = new Pair<>(this.lineCounter, this.numChar);
+
+        // Grab the token
+        Token token;
+        switch (this.state) {
+            // Keyword or Ident
+            case 2 -> {
+                if (keywords.contains(this.lexemeBuffer)) {
+                    token = new Keyword(this.lexemeBuffer);
+                } else {
+                    token = new Ident(this.lexemeBuffer);
+                }
+            }
+            case 7 -> {
+                token = new FloatLiteral(this.lexemeBuffer);
+            }
+            case 8 -> {
+                token = new IntLiteral(this.lexemeBuffer);
+            }
+            case 14 -> {
+                token = new StrLiteral(this.lexemeBuffer);
+            }
+            default -> {
+                token = new Symbol(this.lexemeBuffer);
+            }
+        }
+
+        // Put the token into the table along with the span info
+        tokenTable.put(span, token);
+        System.out.println(token);
+
+
+        this.lexemeBuffer = "";
+        this.state = Lexer.initState;
+    }
+
+    public Lexer(String sourceCode) {
+        this._sourceCode = sourceCode;
+    }
 
     public static void main(String[] args) {
-        var app = new Lexer();
-        System.out.println(Lexer.stf);
+        var lexer = new Lexer("let x = 5;\n");
+        // System.out.println(Lexer.stf);
+        lexer.lex();
+        System.out.println(lexer.tokenTable);
     }
 }
