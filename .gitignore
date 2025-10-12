@@ -9,3 +9,6 @@ build
 
 # Ignore failed snapshots
 *.snap.debug
+
+# intelij
+.idea
