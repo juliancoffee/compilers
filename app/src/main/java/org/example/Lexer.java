@@ -343,8 +343,13 @@ public class Lexer {
             System.out.println("======== " + this.numChar + " state: " + this.state);
             var ch = nextChar();
             if (ch == null) {
-                System.out.println("the end");
-                return;
+                if (this.state == Lexer.initState) {
+                    System.out.println("the end");
+                    return;
+                } else {
+                    // arguably a hack, but neccessary to catch malformed strings
+                    ch = '\n';
+                }
             }
 
             System.out.println("ch: " + ch);
