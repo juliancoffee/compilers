@@ -294,16 +294,20 @@ public class Lexer {
         // print
         "print",
         // types
-        "Void", "Int", "Double", "String", "Bool"
+        "Void", "Int", "Double", "String", "Bool",
+        // literals
+        "true", "false"
     );
     /*
      * Lexer state
      */
     int numChar = 0;
     int lineCounter = 1;
+    int lexemeStartLine = 1;
+    int lexemeStartChar = 0;
     int state = Lexer.initState;
     String lexemeBuffer = "";
-    public TreeMap<Pair<Integer, Integer>, Token> tokenTable = new TreeMap<>();
+    public TreeMap<Pair<Pair<Integer, Integer>, Pair<Integer, Integer>>, Token> tokenTable = new TreeMap<>();
 
     /*
      * Lexer data
@@ -356,6 +360,12 @@ public class Lexer {
 
             var cls = CharClass.classOfChar(ch);
             System.out.println(cls);
+
+            if (this.state == Lexer.initState) {
+                this.lexemeStartLine = this.lineCounter;
+                this.lexemeStartChar = this.numChar;
+            }
+
             this.state = nextState(state, cls);
 
             System.out.println("nexState: " + this.state);
@@ -390,8 +400,10 @@ public class Lexer {
         }
 
         // Locate the span
-        // FIXME: find the token's begining
-        var span = new Pair<>(this.lineCounter, this.numChar);
+        var span = new Pair<>(
+            new Pair<>(this.lexemeStartLine, this.lexemeStartChar),
+            new Pair<>(this.lineCounter, this.numChar)
+        );
 
         // Grab the token
         Token token;
@@ -424,7 +436,8 @@ public class Lexer {
         }
 
         // Put the token into the table along with the span info
-        if (!token.equals(new Symbol("\n"))) {
+        // FIXME: fix
+        if (this.state != 11 || this.state != 3) {
             tokenTable.put(span, token);
         }
         System.out.println(token);

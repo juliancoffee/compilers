@@ -25,11 +25,11 @@ class SimpleTest {
         lexer.lex();
 
         Map<String, Object> expectedTokens = new LinkedHashMap<>();
-        expectedTokens.put("(1, 3)", Map.of("keyword", "let"));
-        expectedTokens.put("(1, 5)", Map.of("ident", "x"));
-        expectedTokens.put("(1, 7)", Map.of("symbol", "="));
-        expectedTokens.put("(1, 9)", Map.of("intLiteral", "5"));
-        expectedTokens.put("(1, 10)", Map.of("symbol", ";"));
+        expectedTokens.put("((1, 1), (1, 3))", Map.of("keyword", "let"));
+        expectedTokens.put("((1, 5), (1, 5))", Map.of("ident", "x"));
+        expectedTokens.put("((1, 7), (1, 7))", Map.of("symbol", "="));
+        expectedTokens.put("((1, 9), (1, 9))", Map.of("intLiteral", "5"));
+        expectedTokens.put("((1, 10), (1, 10))", Map.of("symbol", ";"));
 
         var gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -46,11 +46,11 @@ class SimpleTest {
         lexer.lex();
 
         Map<String, Object> expectedTokens = new LinkedHashMap<>();
-        expectedTokens.put("(1, 3)", Map.of("keyword", "let"));
-        expectedTokens.put("(1, 8)", Map.of("ident", "name"));
-        expectedTokens.put("(1, 10)", Map.of("symbol", "="));
-        expectedTokens.put("(1, 14)", Map.of("strLiteral", "x"));
-        expectedTokens.put("(1, 15)", Map.of("symbol", ";"));
+        expectedTokens.put("((1, 1), (1, 3))", Map.of("keyword", "let"));
+        expectedTokens.put("((1, 5), (1, 8))", Map.of("ident", "name"));
+        expectedTokens.put("((1, 10), (1, 10))", Map.of("symbol", "="));
+        expectedTokens.put("((1, 12), (1, 14))", Map.of("strLiteral", "x"));
+        expectedTokens.put("((1, 15), (1, 15))", Map.of("symbol", ";"));
 
         var gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -120,11 +120,11 @@ class SimpleTest {
         lexer.lex();
 
         Map<String, Object> expectedTokens = new LinkedHashMap<>();
-        expectedTokens.put("(1, 4)", Map.of("ident", "varl")); // "varl" is treated as an identifier
-        expectedTokens.put("(1, 10)", Map.of("ident", "myVar"));
-        expectedTokens.put("(1, 12)", Map.of("symbol", "="));
-        expectedTokens.put("(1, 15)", Map.of("intLiteral", "10"));
-        expectedTokens.put("(1, 16)", Map.of("symbol", ";"));
+        expectedTokens.put("((1, 1), (1, 4))", Map.of("ident", "varl"));
+        expectedTokens.put("((1, 6), (1, 10))", Map.of("ident", "myVar"));
+        expectedTokens.put("((1, 12), (1, 12))", Map.of("symbol", "="));
+        expectedTokens.put("((1, 14), (1, 15))", Map.of("intLiteral", "10"));
+        expectedTokens.put("((1, 16), (1, 16))", Map.of("symbol", ";"));
 
         var gson = new GsonBuilder().setPrettyPrinting().create();
 
