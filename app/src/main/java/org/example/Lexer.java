@@ -14,6 +14,10 @@ import com.google.gson.GsonBuilder;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
+
 enum CharClass {
     // basic
     LETTER, DIGIT, DOT,
@@ -344,11 +348,11 @@ public class Lexer {
     // Does the thing
     public void lex() {
         while (true) {
-            System.out.println("======== " + this.numChar + " state: " + this.state);
+            // System.out.println("======== " + this.numChar + " state: " + this.state);
             var ch = nextChar();
             if (ch == null) {
                 if (this.state == Lexer.initState) {
-                    System.out.println("the end");
+                    // System.out.println("the end");
                     return;
                 } else {
                     // arguably a hack, but neccessary to catch malformed strings
@@ -356,10 +360,10 @@ public class Lexer {
                 }
             }
 
-            System.out.println("ch: " + ch);
+            // System.out.println("ch: " + ch);
 
             var cls = CharClass.classOfChar(ch);
-            System.out.println(cls);
+            // System.out.println(cls);
 
             if (this.state == Lexer.initState) {
                 this.lexemeStartLine = this.lineCounter;
@@ -368,8 +372,8 @@ public class Lexer {
 
             this.state = nextState(state, cls);
 
-            System.out.println("nexState: " + this.state);
-            System.out.println("lexeme: " + this.lexemeBuffer);
+            // System.out.println("nexState: " + this.state);
+            // System.out.println("lexeme: " + this.lexemeBuffer);
 
             this.lexemeBuffer += ch;
             if (statesEnd.contains(this.state)) {
@@ -385,7 +389,7 @@ public class Lexer {
     void semanticallyProcess() {
         if (statesError.contains(this.state)) {
             throw new RuntimeException(
-                "E" + this.state + ": on" + this.lineCounter
+                "E" + this.state + ": on the line " + this.lineCounter
             );
         }
 
@@ -439,11 +443,93 @@ public class Lexer {
         if (this.state != 11 && this.state != 3) {
             tokenTable.put(span, token);
         }
-        System.out.println(token);
+        // System.out.println(token);
 
 
         this.lexemeBuffer = "";
         this.state = Lexer.initState;
+    }
+
+    /*
+     * ANSI escape codes for colors
+     */
+    public static final String ANSI_RESET = "\u001B[0m";
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_GREEN = "\u001B[32m";
+    public static final String ANSI_YELLOW = "\u001B[33m";
+    public static final String ANSI_BLUE = "\u001B[34m";
+    public static final String ANSI_PURPLE = "\u001B[35m";
+    public static final String ANSI_CYAN = "\u001B[36m";
+    public static final String ANSI_WHITE = "\u001B[37m";
+
+    private String getColorForToken(Token token) {
+        if (token instanceof Keyword) {
+            return ANSI_PURPLE;
+        } else if (token instanceof Ident) {
+            return ANSI_WHITE;
+        } else if (token instanceof IntLiteral || token instanceof FloatLiteral) {
+            return ANSI_GREEN;
+        } else if (token instanceof StrLiteral) {
+            return ANSI_YELLOW;
+        } else if (token instanceof Symbol s) {
+            // check for comment
+            if (s.symbol().startsWith("//")) {
+                return ANSI_CYAN;
+            }
+            return ANSI_RED;
+        }
+        return ANSI_RESET;
+    }
+
+    public void colorizeAndPrint() {
+        if (tokenTable.isEmpty()) {
+            // Lexer probably wasn't run, so just print the raw code
+            System.out.println(_sourceCode);
+            return;
+        }
+
+        int lastPos = 0;
+        for (var entry : tokenTable.entrySet()) {
+            var span = entry.getKey();
+            var token = entry.getValue();
+
+            int startPos = span.first().second() - 1;
+
+            String lexeme;
+            if (token instanceof Keyword k) {
+                lexeme = k.keyword();
+            } else if (token instanceof Ident i) {
+                lexeme = i.ident();
+            } else if (token instanceof IntLiteral i) {
+                lexeme = i.intLiteral();
+            } else if (token instanceof FloatLiteral f) {
+                lexeme = f.floatLiteral();
+            } else if (token instanceof StrLiteral s) {
+                // The stored string literal does not include quotes.
+                lexeme = "\"" + s.strLiteral() + "\"";
+            } else if (token instanceof Symbol s) {
+                lexeme = s.symbol();
+            } else {
+                lexeme = ""; // Should not happen
+            }
+
+            int endPos = startPos + lexeme.length();
+
+            // Print text before the token
+            if (startPos > lastPos) {
+                System.out.print(_sourceCode.substring(lastPos, startPos));
+            }
+
+            String color = getColorForToken(token);
+            System.out.print(color + _sourceCode.substring(startPos, endPos) + ANSI_RESET);
+
+            lastPos = endPos;
+        }
+
+        // Print remaining text
+        if (lastPos < _sourceCode.length()) {
+            System.out.print(_sourceCode.substring(lastPos));
+        }
     }
 
     public void printSymbolTable() {
@@ -514,14 +600,41 @@ public class Lexer {
         this._sourceCode = sourceCode;
     }
 
-    public static void main(String[] args) {
-        var lexer = new Lexer("""
-let x = 5;
+    public static void main(String[] args) throws IOException {
+        String code;
+        if (args.length > 0) {
+            code = Files.readString(
+                Paths.get(args[0]),
+                StandardCharsets.UTF_8
+            );
+
+            if (code == null) {
+                System.err.println("Cannot find file: " + args[0]);
+                System.err.println(System.getProperty("user.dir"));
+                return;
+            }
+        } else {
+            // Default code
+            code = """
+let x = "5.;
 
 // func
 func noop() {}
-            """);
-        lexer.lex();
+""";
+        }
+
+        var lexer = new Lexer(code);
+
+        try {
+            lexer.lex();
+            System.out.println("\nFile was lexed successfully!");
+        } catch (RuntimeException e) {
+            System.out.println("\nLexer has failed!");
+            System.err.println(e);
+        }
+
         lexer.printSymbolTable();
+        System.out.println("\nColorized output:");
+        lexer.colorizeAndPrint();
     }
 }
