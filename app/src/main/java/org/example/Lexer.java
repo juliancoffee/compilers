@@ -446,14 +446,82 @@ public class Lexer {
         this.state = Lexer.initState;
     }
 
+    public void printSymbolTable() {
+        System.out.println("Таблиця символів програми:");
+        System.out.printf("%-7s %-15s %-20s %-12s %-10s%n",
+                "n_rec", "lexeme", "token", "idxIdConst", "num_line");
+        System.out.println("-----------------------------------------------------------------------");
+
+        int nRec = 1;
+
+        Map<String, Integer> idTable = new HashMap<>();
+        Map<String, Integer> intConstTable = new HashMap<>();
+        Map<String, Integer> doubleConstTable = new HashMap<>();
+        Map<String, Integer> stringConstTable = new HashMap<>();
+
+        for (var entry : tokenTable.entrySet()) {
+            var pair = entry.getKey();
+            var token = entry.getValue();
+
+            String lexeme = "";
+            String tokenName = "";
+            String idxIdConst = "";
+            int numLine = pair.first().first();
+
+            // tokens
+            if (token instanceof Keyword k) {
+                lexeme = k.keyword();
+                tokenName = "keyword";
+            } else if (token instanceof Ident i) {
+                lexeme = i.ident();
+                tokenName = "ident";
+                idxIdConst = String.valueOf(idTable.computeIfAbsent(lexeme, key -> idTable.size() + 1));
+            } else if (token instanceof IntLiteral i) {
+                lexeme = i.intLiteral();
+                tokenName = "int_const";
+                idxIdConst = String.valueOf(intConstTable.computeIfAbsent(lexeme, key -> intConstTable.size() + 1));
+            } else if (token instanceof FloatLiteral f) {
+                lexeme = f.floatLiteral();
+                tokenName = "double_const";
+                idxIdConst = String.valueOf(doubleConstTable.computeIfAbsent(lexeme, key -> doubleConstTable.size() + 1));
+            } else if (token instanceof StrLiteral s) {
+                lexeme = "\"" + s.strLiteral() + "\""; // quotes
+                tokenName = "string_const";
+                idxIdConst = String.valueOf(stringConstTable.computeIfAbsent(s.strLiteral(), key -> stringConstTable.size() + 1));
+            } else if (token instanceof Symbol s) {
+                lexeme = s.symbol();
+                switch (lexeme) {
+                    case "+", "-" -> tokenName = "add_op";
+                    case "*", "**", "/" -> tokenName = "mult_op";
+                    case "=", "==", "!=", "<", "<=", ">", ">=" -> tokenName = "rel_op";
+                    case "&&", "||", "!" -> tokenName = "logic_op";
+                    case "(", ")", "{", "}" -> tokenName = "brackets_op";
+                    case ",", ".", ";", ":" -> tokenName = "punct";
+                    default -> tokenName = "symbol";
+                }
+            }
+
+            lexeme = lexeme.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
+
+            System.out.printf("%-7d %-15s %-20s %-12s %-10d%n",
+                    nRec, lexeme, tokenName, idxIdConst, numLine);
+            nRec++;
+        }
+        System.out.println("-----------------------------------------------------------------------");
+    }
+
     public Lexer(String sourceCode) {
         this._sourceCode = sourceCode;
     }
 
     public static void main(String[] args) {
-        var lexer = new Lexer("let x = 5;\n");
-        // System.out.println(Lexer.stf);
+        var lexer = new Lexer("""
+let x = 5;
+
+// func
+func noop() {}
+            """);
         lexer.lex();
-        System.out.println(lexer.tokenTable);
+        lexer.printSymbolTable();
     }
 }
