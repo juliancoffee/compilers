@@ -33,8 +33,13 @@ enum CharClass {
     STAR,
     // division or comment
     SLASH,
-    // wildcard
-    OTHER;
+    /*
+     * special
+     */
+    // wildcard, MUST NOT be result of `classOfChar`
+    OTHER,
+    // represents a character outside of allowed alphabet
+    NOT_A_CHAR;
 
     static CharClass classOfChar(Character c) {
         // First, check for character groups (letters and digits)
@@ -64,8 +69,7 @@ enum CharClass {
             case '|' -> PIPE;
             case '*' -> STAR;
             case '/' -> SLASH;
-            // Any other character is considered unclassifiable and throws an exception.
-            default -> throw new IllegalArgumentException("Cannot classify character: '" + c + "'");
+            default -> NOT_A_CHAR;
         };
     }
 }
