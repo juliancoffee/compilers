@@ -424,7 +424,9 @@ public class Lexer {
         }
 
         // Put the token into the table along with the span info
-        tokenTable.put(span, token);
+        if (!token.equals(new Symbol("\n"))) {
+            tokenTable.put(span, token);
+        }
         System.out.println(token);
 
 
