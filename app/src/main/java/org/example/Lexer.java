@@ -436,8 +436,7 @@ public class Lexer {
         }
 
         // Put the token into the table along with the span info
-        // FIXME: fix
-        if (this.state != 11 || this.state != 3) {
+        if (this.state != 11 && this.state != 3) {
             tokenTable.put(span, token);
         }
         System.out.println(token);
