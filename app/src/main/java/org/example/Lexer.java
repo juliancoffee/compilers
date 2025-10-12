@@ -388,8 +388,15 @@ public class Lexer {
 
     void semanticallyProcess() {
         if (statesError.contains(this.state)) {
+            var msg = switch(this.state) {
+                case 101 -> ": unexpected symbol: " + this.lexemeBuffer;
+                case 102 -> ": malformed number literal: " + this.lexemeBuffer;
+                case 103 -> ": malformed string literal: " + this.lexemeBuffer;
+                case 104 -> ": malformed || or && : " + this.lexemeBuffer;
+                default -> ": ??";
+            };
             throw new RuntimeException(
-                "E" + this.state + ": on the line " + this.lineCounter
+                "E" + this.state + ": on the line " + this.lineCounter + msg
             );
         }
 
@@ -616,7 +623,7 @@ public class Lexer {
         } else {
             // Default code
             code = """
-let x = "5.;
+let x = #5.#;
 
 // func
 func noop() {}
