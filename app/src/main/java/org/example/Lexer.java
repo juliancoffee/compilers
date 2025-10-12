@@ -406,7 +406,12 @@ public class Lexer {
                 token = new IntLiteral(this.lexemeBuffer);
             }
             case 14 -> {
-                token = new StrLiteral(this.lexemeBuffer);
+                // strip quotes from ends of string literal
+                var content = this.lexemeBuffer.substring(
+                    1,
+                    this.lexemeBuffer.length() - 1
+                );
+                token = new StrLiteral(content);
             }
             default -> {
                 token = new Symbol(this.lexemeBuffer);

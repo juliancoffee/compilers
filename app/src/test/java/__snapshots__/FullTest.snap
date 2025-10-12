@@ -16,7 +16,7 @@ FullTest.appOk=[
       "symbol": "="
     },
     "(1, 37)": {
-      "strLiteral": "\"Hello, yall!\""
+      "strLiteral": "Hello, yall!"
     },
     "(1, 38)": {
       "symbol": ";"
@@ -214,7 +214,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(13, 255)": {
-      "strLiteral": "\"Hello, \""
+      "strLiteral": "Hello, "
     },
     "(13, 256)": {
       "symbol": ","
@@ -406,7 +406,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(29, 492)": {
-      "strLiteral": "\"Nothing is ..\""
+      "strLiteral": "Nothing is .."
     },
     "(29, 493)": {
       "symbol": ","
@@ -478,7 +478,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(34, 598)": {
-      "strLiteral": "\"For loop iteration: \""
+      "strLiteral": "For loop iteration: "
     },
     "(34, 599)": {
       "symbol": ","
@@ -526,7 +526,7 @@ FullTest.appOk=[
       "symbol": "="
     },
     "(39, 666)": {
-      "strLiteral": "\"Bye!\""
+      "strLiteral": "Bye!"
     },
     "(39, 667)": {
       "symbol": ";"
@@ -559,7 +559,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(41, 711)": {
-      "strLiteral": "\"Char: \""
+      "strLiteral": "Char: "
     },
     "(41, 712)": {
       "symbol": ","
@@ -634,7 +634,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(48, 815)": {
-      "strLiteral": "\"Counter = \""
+      "strLiteral": "Counter = "
     },
     "(48, 817)": {
       "symbol": "+"
@@ -724,7 +724,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(55, 969)": {
-      "strLiteral": "\"Flag is true and pi > 3\""
+      "strLiteral": "Flag is true and pi > 3"
     },
     "(55, 970)": {
       "symbol": ")"
@@ -754,7 +754,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(57, 1 018)": {
-      "strLiteral": "\"Condition not met\""
+      "strLiteral": "Condition not met"
     },
     "(57, 1 019)": {
       "symbol": ")"
@@ -841,7 +841,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(65, 1 157)": {
-      "strLiteral": "\"Choice is 0 or 1\""
+      "strLiteral": "Choice is 0 or 1"
     },
     "(65, 1 158)": {
       "symbol": ")"
@@ -892,7 +892,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(68, 1 233)": {
-      "strLiteral": "\"Choice is 2 or 3\""
+      "strLiteral": "Choice is 2 or 3"
     },
     "(68, 1 234)": {
       "symbol": ")"
@@ -925,7 +925,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(71, 1 308)": {
-      "strLiteral": "\"Choice is something else\""
+      "strLiteral": "Choice is something else"
     },
     "(71, 1 309)": {
       "symbol": ")"
@@ -1003,7 +1003,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(78, 1 405)": {
-      "strLiteral": "\"Sum = \""
+      "strLiteral": "Sum = "
     },
     "(78, 1 406)": {
       "symbol": ","
@@ -1081,7 +1081,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(83, 1 506)": {
-      "strLiteral": "\"isBig = \""
+      "strLiteral": "isBig = "
     },
     "(83, 1 507)": {
       "symbol": ","
@@ -1171,7 +1171,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(87, 1 594)": {
-      "strLiteral": "\"equal\""
+      "strLiteral": "equal"
     },
     "(87, 1 595)": {
       "symbol": ")"
@@ -1213,7 +1213,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(90, 1 644)": {
-      "strLiteral": "\"not equal\""
+      "strLiteral": "not equal"
     },
     "(90, 1 645)": {
       "symbol": ")"
@@ -1255,7 +1255,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(93, 1 688)": {
-      "strLiteral": "\"less\""
+      "strLiteral": "less"
     },
     "(93, 1 689)": {
       "symbol": ")"
@@ -1297,7 +1297,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(96, 1 742)": {
-      "strLiteral": "\"less or equal\""
+      "strLiteral": "less or equal"
     },
     "(96, 1 743)": {
       "symbol": ")"
@@ -1339,7 +1339,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(99, 1 789)": {
-      "strLiteral": "\"greater\""
+      "strLiteral": "greater"
     },
     "(99, 1 790)": {
       "symbol": ")"
@@ -1381,7 +1381,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(102, 1 846)": {
-      "strLiteral": "\"greater or equal\""
+      "strLiteral": "greater or equal"
     },
     "(102, 1 847)": {
       "symbol": ")"
@@ -1462,7 +1462,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(106, 1 957)": {
-      "strLiteral": "\"Result = \""
+      "strLiteral": "Result = "
     },
     "(106, 1 958)": {
       "symbol": ","
@@ -1540,7 +1540,7 @@ FullTest.appOk=[
       "symbol": "("
     },
     "(111, 2 044)": {
-      "strLiteral": "\"Area = \""
+      "strLiteral": "Area = "
     },
     "(111, 2 045)": {
       "symbol": ","

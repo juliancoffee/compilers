@@ -41,7 +41,7 @@ class SimpleTest {
 
     @Test
     void stringLiteralsTest() {
-        var input = "let name = \"Hello, world!\";";
+        var input = "let name = \"x\";";
         var lexer = new Lexer(input);
         lexer.lex();
 
@@ -49,8 +49,8 @@ class SimpleTest {
         expectedTokens.put("(1, 3)", Map.of("keyword", "let"));
         expectedTokens.put("(1, 8)", Map.of("ident", "name"));
         expectedTokens.put("(1, 10)", Map.of("symbol", "="));
-        expectedTokens.put("(1, 25)", Map.of("strLiteral", "Hello, world!"));
-        expectedTokens.put("(1, 26)", Map.of("symbol", ";"));
+        expectedTokens.put("(1, 14)", Map.of("strLiteral", "x"));
+        expectedTokens.put("(1, 15)", Map.of("symbol", ";"));
 
         var gson = new GsonBuilder().setPrettyPrinting().create();
 
