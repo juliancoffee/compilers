@@ -255,13 +255,15 @@ public class Lexer {
      * Lexer state
      */
     int numChar = 0;
-    int lineCounter = 1;
-    int lexemeStartLine = 1;
     int lexemeStartChar = 0;
     int state = Lexer.initState;
     String lexemeBuffer = "";
-    public TreeMap<Pair<Pair<Integer, Integer>, Pair<Integer, Integer>>, Token>
-        tokenTable = new TreeMap<>();
+
+    /*
+     * Output
+     */
+    public ArrayList<Integer> lineIndex = new ArrayList(Set.of(0));
+    public TreeMap<Pair<Integer, Integer>, Token> tokenTable = new TreeMap<>();
 
     /*
      * Lexer data
@@ -281,7 +283,7 @@ public class Lexer {
             var ch = this._sourceCode.charAt(numChar);
             this.numChar++;
             if (ch == '\n') {
-                this.lineCounter++;
+                this.lineIndex.add(this.numChar);
             }
 
             return ch;
@@ -318,7 +320,6 @@ public class Lexer {
             log.debug(cls);
 
             if (this.state == Lexer.initState) {
-                this.lexemeStartLine = this.lineCounter;
                 this.lexemeStartChar = this.numChar;
             }
 
@@ -340,23 +341,22 @@ public class Lexer {
         if (statesError.contains(this.state)) {
             // add error span
             var error_span = new Pair<>(
-                new Pair<>(this.lexemeStartLine, this.lexemeStartChar),
-                new Pair<>(this.lineCounter, this.numChar)
+                this.lexemeStartChar, this.numChar
             );
             tokenTable.put(error_span, new Error(this.lexemeBuffer));
 
             var msg = switch(this.state) {
-                case 101 -> ": unexpected symbol: " + this.lexemeBuffer;
-                case 102 -> ": malformed number literal: " + this.lexemeBuffer;
-                case 103 -> ": malformed string literal: " + this.lexemeBuffer;
-                case 104 -> ": malformed || or && : " + this.lexemeBuffer;
-                default -> ": ??";
+                case 101 -> "\nErr: unexpected symbol: " + this.lexemeBuffer;
+                case 102 -> "\nErr: malformed number literal: " + this.lexemeBuffer;
+                case 103 -> "\nErr: malformed string literal: " + this.lexemeBuffer;
+                case 104 -> "\nErr: malformed || or && : " + this.lexemeBuffer;
+                default -> "\nErr: ?? : " + this.lexemeBuffer;
             };
 
+            var span = SpanUtils.formatSpan(error_span, this.lineIndex);
             throw new RuntimeException(
                 "E" + this.state +
-                ": on lines "
-                + this.lexemeStartLine + " to " + this.lineCounter
+                ": in range of " + span
                 + msg
             );
         }
@@ -373,8 +373,7 @@ public class Lexer {
 
         // Locate the span
         var span = new Pair<>(
-            new Pair<>(this.lexemeStartLine, this.lexemeStartChar),
-            new Pair<>(this.lineCounter, this.numChar)
+            this.lexemeStartChar, this.numChar
         );
 
 

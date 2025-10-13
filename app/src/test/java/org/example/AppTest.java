@@ -11,23 +11,30 @@ import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import com.google.gson.GsonBuilder;
 
 import org.example.Lexer;
+import org.example.Pair;
+import org.example.SpanUtils;
 
 class SimpleTest {
+    private static Pair<Integer, Integer> span(int from, int to) {
+        return new Pair<>(from, to);
+    }
+
     @Test void simple() {
         var input = "let x = 5;";
         var lexer = new Lexer(input);
         lexer.lex();
 
-        Map<String, Object> expectedTokens = new LinkedHashMap<>();
-        expectedTokens.put("((1, 1), (1, 3))", Map.of("keyword", "let"));
-        expectedTokens.put("((1, 5), (1, 5))", Map.of("ident", "x"));
-        expectedTokens.put("((1, 7), (1, 7))", Map.of("symbol", "="));
-        expectedTokens.put("((1, 9), (1, 9))", Map.of("intLiteral", "5"));
-        expectedTokens.put("((1, 10), (1, 10))", Map.of("symbol", ";"));
+        Map<Pair, Object> expectedTokens = new LinkedHashMap<>();
+        expectedTokens.put(span(1, 3), Map.of("keyword", "let"));
+        expectedTokens.put(span(5, 5), Map.of("ident", "x"));
+        expectedTokens.put(span(7, 7), Map.of("symbol", "="));
+        expectedTokens.put(span(9, 9), Map.of("intLiteral", "5"));
+        expectedTokens.put(span(10, 10), Map.of("symbol", ";"));
 
         var gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -43,12 +50,12 @@ class SimpleTest {
         var lexer = new Lexer(input);
         lexer.lex();
 
-        Map<String, Object> expectedTokens = new LinkedHashMap<>();
-        expectedTokens.put("((1, 1), (1, 3))", Map.of("keyword", "let"));
-        expectedTokens.put("((1, 5), (1, 8))", Map.of("ident", "name"));
-        expectedTokens.put("((1, 10), (1, 10))", Map.of("symbol", "="));
-        expectedTokens.put("((1, 12), (1, 14))", Map.of("strLiteral", "x"));
-        expectedTokens.put("((1, 15), (1, 15))", Map.of("symbol", ";"));
+        Map<Pair, Object> expectedTokens = new LinkedHashMap<>();
+        expectedTokens.put(span(1, 3), Map.of("keyword", "let"));
+        expectedTokens.put(span(5, 8), Map.of("ident", "name"));
+        expectedTokens.put(span(10, 10), Map.of("symbol", "="));
+        expectedTokens.put(span(12, 14), Map.of("strLiteral", "x"));
+        expectedTokens.put(span(15, 15), Map.of("symbol", ";"));
 
         var gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -117,12 +124,12 @@ class SimpleTest {
         var lexer = new Lexer(input);
         lexer.lex();
 
-        Map<String, Object> expectedTokens = new LinkedHashMap<>();
-        expectedTokens.put("((1, 1), (1, 4))", Map.of("ident", "varl"));
-        expectedTokens.put("((1, 6), (1, 10))", Map.of("ident", "myVar"));
-        expectedTokens.put("((1, 12), (1, 12))", Map.of("symbol", "="));
-        expectedTokens.put("((1, 14), (1, 15))", Map.of("intLiteral", "10"));
-        expectedTokens.put("((1, 16), (1, 16))", Map.of("symbol", ";"));
+        Map<Pair, Object> expectedTokens = new LinkedHashMap<>();
+        expectedTokens.put(span(1, 4), Map.of("ident", "varl"));
+        expectedTokens.put(span(6, 10), Map.of("ident", "myVar"));
+        expectedTokens.put(span(12, 12), Map.of("symbol", "="));
+        expectedTokens.put(span(14, 15), Map.of("intLiteral", "10"));
+        expectedTokens.put(span(16, 16), Map.of("symbol", ";"));
 
         var gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -130,21 +137,6 @@ class SimpleTest {
         String expectedJson = gson.toJson(expectedTokens);
 
         assertEquals(expectedJson, actualJson);
-    }
-}
-
-@ExtendWith({SnapshotExtension.class})
-class AppTest {
-    private Expect expect;
-
-    @Test void appOk() {
-        var input = "let x = 5;";
-        var lexer = new Lexer(input);
-        lexer.lex();
-
-        expect
-            .serializer("json")
-            .toMatchSnapshot(lexer.tokenTable);
     }
 }
 
@@ -166,8 +158,20 @@ class FullTest {
         var lexer = new Lexer(input);
         lexer.lex();
 
+        var formattedTable = lexer.tokenTable.entrySet()
+            .stream()
+            .collect(Collectors.toMap(
+                entry -> new Pair<>(
+                    SpanUtils.locate(entry.getKey().first(), lexer.lineIndex),
+                    SpanUtils.locate(entry.getKey().second(), lexer.lineIndex)
+                ),
+                Map.Entry::getValue,
+                (v1, v2) -> v2,
+                LinkedHashMap::new
+            ));
+
         expect
             .serializer("json")
-            .toMatchSnapshot(lexer.tokenTable);
+            .toMatchSnapshot(formattedTable);
     }
 }

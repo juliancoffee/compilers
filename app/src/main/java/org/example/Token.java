@@ -1,6 +1,6 @@
 package org.example;
 
-sealed interface Token {};
+public sealed interface Token {};
 
 record Keyword(String keyword) implements Token {
     @Override

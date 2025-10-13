@@ -9,12 +9,12 @@ import java.util.*;
 
 class App {
     private static void printTokenTable(
-        TreeMap<Pair<Pair<Integer, Integer>, Pair<Integer, Integer>>, Token>
-            tokenTable
+        TreeMap<Pair<Integer, Integer>, Token> tokenTable,
+        ArrayList<Integer> lineIndex
     ) {
         System.out.println("Таблиця символів програми:");
-        System.out.printf("%-7s %-15s %-20s %-12s %-10s%n",
-                "n_rec", "lexeme", "token", "idxIdConst", "num_line");
+        System.out.printf("%-7s %-15s %-20s %-12s %-10s %n",
+                "n_rec", "lexeme", "token", "idxIdConst", "span");
         System.out.println("-----------------------------------------------------------------------");
 
         int nRec = 1;
@@ -31,7 +31,8 @@ class App {
             String lexeme = "";
             String tokenName = "";
             String idxIdConst = "";
-            int numLine = pair.first().first();
+            int numChar = pair.first();
+            int numCharEnd = pair.second();
 
             // tokens
             if (token instanceof Keyword k) {
@@ -71,8 +72,14 @@ class App {
 
             lexeme = lexeme.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
 
-            System.out.printf("%-7d %-15s %-20s %-12s %-10d%n",
-                    nRec, lexeme, tokenName, idxIdConst, numLine);
+            var first_pos = SpanUtils.locate(numChar, lineIndex);
+            var second_pos = SpanUtils.locate(numCharEnd, lineIndex);
+            var span = String.format("%d,%d..%d,%d",
+                first_pos.first(), first_pos.second(),
+                second_pos.first(), second_pos.second()
+            );
+            System.out.printf("%-7d %-15s %-20s %-12s %-10s %n",
+                    nRec, lexeme, tokenName, idxIdConst, span);
             nRec++;
         }
         System.out.println("-----------------------------------------------------------------------");
@@ -108,7 +115,7 @@ class App {
 
     public static void colorizeAndPrint(
         String sourceCode,
-        TreeMap<Pair<Pair<Integer, Integer>, Pair<Integer, Integer>>, Token> tokenTable
+        TreeMap<Pair<Integer, Integer>, Token> tokenTable
     ) {
         if (tokenTable.isEmpty()) {
             // Lexer probably wasn't run, so just print the raw code
@@ -121,7 +128,7 @@ class App {
             var span = entry.getKey();
             var token = entry.getValue();
 
-            int startPos = span.first().second() - 1;
+            int startPos = span.first() - 1;
 
             String lexeme = switch (token) {
                 case Keyword k -> k.keyword();
@@ -168,7 +175,7 @@ class App {
         } else {
             // Default code
             code = """
-let x = 5.5;
+let x = "5.5;
 func noop() -> Void {
     let x = 5;
 }
@@ -185,7 +192,7 @@ func noop() -> Void {
             System.err.println(e);
         }
 
-        printTokenTable(lexer.tokenTable);
+        printTokenTable(lexer.tokenTable, lexer.lineIndex);
         System.out.println("\nColorized output:");
         colorizeAndPrint(code, lexer.tokenTable);
     }
