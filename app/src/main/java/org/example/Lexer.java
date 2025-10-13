@@ -237,7 +237,8 @@ sealed interface Token permits
     IntLiteral,
     FloatLiteral,
     StrLiteral,
-    Symbol {}
+    Symbol,
+    Error {}
 
 record Keyword(String keyword) implements Token {
     @Override
@@ -279,6 +280,13 @@ record Symbol(String symbol) implements Token {
     public String toString() {
         var theSymbol = symbol.replace("\n", "\\n");
         return "Symbol: " + '"' + theSymbol + '"';
+    }
+}
+
+record Error(String error) implements Token {
+    @Override
+    public String toString() {
+        return "Error: " + '"' + error + '"';
     }
 }
 
@@ -380,7 +388,7 @@ public class Lexer {
             this.state = nextState(state, cls);
 
             System.out.println("nexState: " + this.state);
-            System.out.println("lexeme: " + this.lexemeBuffer);
+            System.out.println("lexeme: " + '"' + this.lexemeBuffer + '"');
 
             this.lexemeBuffer += ch;
             if (statesEnd.contains(this.state)) {
@@ -395,6 +403,13 @@ public class Lexer {
 
     void semanticallyProcess() {
         if (statesError.contains(this.state)) {
+            var error_span = new Pair<>(
+                new Pair<>(this.lexemeStartLine, this.lexemeStartChar),
+                new Pair<>(this.lineCounter, this.numChar)
+            );
+
+            tokenTable.put(error_span, new Error(this.lexemeBuffer));
+
             var msg = switch(this.state) {
                 case 101 -> ": unexpected symbol: " + this.lexemeBuffer;
                 case 102 -> ": malformed number literal: " + this.lexemeBuffer;
@@ -402,8 +417,12 @@ public class Lexer {
                 case 104 -> ": malformed || or && : " + this.lexemeBuffer;
                 default -> ": ??";
             };
+
             throw new RuntimeException(
-                "E" + this.state + ": on the line " + this.lineCounter + msg
+                "E" + this.state +
+                ": on lines "
+                + this.lexemeStartLine + " to " + this.lineCounter
+                + msg
             );
         }
 
@@ -422,6 +441,7 @@ public class Lexer {
             new Pair<>(this.lexemeStartLine, this.lexemeStartChar),
             new Pair<>(this.lineCounter, this.numChar)
         );
+
 
         // Grab the token
         Token token;
@@ -475,24 +495,22 @@ public class Lexer {
     public static final String ANSI_PURPLE = "\u001B[35m";
     public static final String ANSI_CYAN = "\u001B[36m";
     public static final String ANSI_WHITE = "\u001B[37m";
+    /*
+     * ANSI escape code for special effects
+     */
+    public static final String ANSI_UNDERLINE = "\u001b[4m";
+    public static final String ANSI_RED_BACK = "\u001b[41m";
 
     private String getColorForToken(Token token) {
-        if (token instanceof Keyword) {
-            return ANSI_PURPLE;
-        } else if (token instanceof Ident) {
-            return ANSI_WHITE;
-        } else if (token instanceof IntLiteral || token instanceof FloatLiteral) {
-            return ANSI_GREEN;
-        } else if (token instanceof StrLiteral) {
-            return ANSI_YELLOW;
-        } else if (token instanceof Symbol s) {
-            // check for comment
-            if (s.symbol().startsWith("//")) {
-                return ANSI_CYAN;
-            }
-            return ANSI_RED;
-        }
-        return ANSI_RESET;
+        return switch (token) {
+            case Keyword k -> ANSI_PURPLE;
+            case Ident i -> ANSI_WHITE;
+            case IntLiteral il -> ANSI_GREEN;
+            case FloatLiteral fl -> ANSI_GREEN;
+            case StrLiteral sl -> ANSI_YELLOW;
+            case Symbol s -> ANSI_CYAN;
+            case Error e -> ANSI_RED_BACK;
+        };
     }
 
     public void colorizeAndPrint() {
@@ -509,23 +527,15 @@ public class Lexer {
 
             int startPos = span.first().second() - 1;
 
-            String lexeme;
-            if (token instanceof Keyword k) {
-                lexeme = k.keyword();
-            } else if (token instanceof Ident i) {
-                lexeme = i.ident();
-            } else if (token instanceof IntLiteral i) {
-                lexeme = i.intLiteral();
-            } else if (token instanceof FloatLiteral f) {
-                lexeme = f.floatLiteral();
-            } else if (token instanceof StrLiteral s) {
-                // The stored string literal does not include quotes.
-                lexeme = "\"" + s.strLiteral() + "\"";
-            } else if (token instanceof Symbol s) {
-                lexeme = s.symbol();
-            } else {
-                lexeme = ""; // Should not happen
-            }
+            String lexeme = switch (token) {
+                case Keyword k -> k.keyword();
+                case Ident i -> i.ident();
+                case IntLiteral i -> i.intLiteral();
+                case FloatLiteral f -> f.floatLiteral();
+                case StrLiteral s -> "\"" + s.strLiteral() + "\"";
+                case Symbol s -> s.symbol();
+                case Error e -> e.error();
+            };
 
             int endPos = startPos + lexeme.length();
 
@@ -599,6 +609,9 @@ public class Lexer {
                     case ",", ".", ";", ":" -> tokenName = "punct";
                     default -> tokenName = "symbol";
                 }
+            } else if (token instanceof Error e) {
+                lexeme = e.error();
+                tokenName = "error";
             }
 
             lexeme = lexeme.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
@@ -630,7 +643,10 @@ public class Lexer {
         } else {
             // Default code
             code = """
-func noop() -> Void {}
+let x = 5.5;
+func noop() -> Void {
+    let x = 5;
+}
 """;
         }
 
