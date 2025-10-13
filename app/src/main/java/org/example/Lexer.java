@@ -19,6 +19,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 
+import org.example.Pair;
+import org.example.Token;
+
 enum CharClass {
     // basic
     LETTER, DIGIT, DOT,
@@ -82,20 +85,6 @@ enum CharClass {
 record StateBranch(Integer thisState, CharClass nextChar, Integer nextState) {
     public static StateBranch f(Integer thisState, CharClass nextChar, Integer nextState) {
         return new StateBranch(thisState, nextChar, nextState);
-    }
-}
-
-record Pair<K extends Comparable<K>, V extends Comparable<V>>(K first, V second) implements Comparable<Pair<K, V>> {
-    @Override
-    public String toString() {
-        return MessageFormat.format("({0}, {1})", first, second);
-    }
-
-    @Override
-    public int compareTo(Pair<K, V> other) {
-        return Comparator.comparing((Pair<K, V> p) -> p.first())
-            .thenComparing((Pair<K, V> p) -> p.second())
-            .compare(this, other);
     }
 }
 
@@ -232,64 +221,6 @@ class STF {
 
 }
 
-sealed interface Token permits
-    Keyword,
-    Ident,
-    IntLiteral,
-    FloatLiteral,
-    StrLiteral,
-    Symbol,
-    Error {}
-
-record Keyword(String keyword) implements Token {
-    @Override
-    public String toString() {
-        return "Keyword: " + '"' + keyword + '"';
-    }
-}
-
-record Ident(String ident) implements Token {
-    @Override
-    public String toString() {
-        return "Ident: " + '"' + ident + '"';
-    }
-}
-
-record IntLiteral(String intLiteral) implements Token {
-    @Override
-    public String toString() {
-        return "Int: " + '"' + intLiteral + '"';
-    }
-}
-
-record FloatLiteral(String floatLiteral) implements Token {
-    @Override
-    public String toString() {
-        return "Float: " + '"' + floatLiteral + '"';
-    }
-}
-
-record StrLiteral(String strLiteral) implements Token {
-    @Override
-    public String toString() {
-        return "Str: " + '"' + strLiteral + '"';
-    }
-}
-
-record Symbol(String symbol) implements Token {
-    @Override
-    public String toString() {
-        var theSymbol = symbol.replace("\n", "\\n");
-        return "Symbol: " + '"' + theSymbol + '"';
-    }
-}
-
-record Error(String error) implements Token {
-    @Override
-    public String toString() {
-        return "Error: " + '"' + error + '"';
-    }
-}
 
 public class Lexer {
     /*
@@ -333,7 +264,8 @@ public class Lexer {
     int lexemeStartChar = 0;
     int state = Lexer.initState;
     String lexemeBuffer = "";
-    public TreeMap<Pair<Pair<Integer, Integer>, Pair<Integer, Integer>>, Token> tokenTable = new TreeMap<>();
+    public TreeMap<Pair<Pair<Integer, Integer>, Pair<Integer, Integer>>, Token>
+        tokenTable = new TreeMap<>();
 
     /*
      * Lexer data
@@ -402,8 +334,6 @@ public class Lexer {
                 semanticallyProcess();
             } else if (this.state == Lexer.initState) {
                 this.lexemeBuffer = "";
-            } else {
-                // this.lexemeBuffer += ch;
             }
         }
     }
