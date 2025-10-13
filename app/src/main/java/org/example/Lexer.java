@@ -363,7 +363,6 @@ public class Lexer {
 
         // Put the peeked character back, if needed
         if (statesEndSpecial.contains(this.state)) {
-            // FIXME: handle newlines?
             this.numChar -= 1;
             this.lexemeBuffer = this.lexemeBuffer.substring(
                 0,
