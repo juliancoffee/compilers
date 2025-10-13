@@ -73,5 +73,5 @@ java {
 
 application {
     // Define the main class for the application.
-    mainClass = 'org.example.Lexer'
+    mainClass = 'org.example.App'
 }

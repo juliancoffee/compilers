@@ -2,7 +2,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import au.com.origin.snapshots.Expect;
-import au.com.origin.snapshots.annotations.SnapshotName;
 import au.com.origin.snapshots.junit5.SnapshotExtension;
 
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 
 import java.util.*;
 
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import org.example.Lexer;
