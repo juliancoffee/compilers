@@ -166,7 +166,13 @@ class STF {
 
             // Arithmetic and Punctuation
             StateBranch.f(0, CharClass.PLUS, 15),
-            StateBranch.f(0, CharClass.MINUS, 15),
+            // Got minus, maybe it's a type arrow?
+            StateBranch.f(0, CharClass.MINUS, 30),
+            // Finished, end with Minus and continue
+            StateBranch.f(30, CharClass.OTHER, 31),
+            // Finished, end with TypeArrow and continue
+            StateBranch.f(30, CharClass.GREATER, 32),
+            // Other simple things
             StateBranch.f(0, CharClass.COMMA, 15),
             StateBranch.f(0, CharClass.COLON, 15),
             StateBranch.f(0, CharClass.SEMICOLON, 15),
@@ -211,6 +217,7 @@ class STF {
             StateBranch.f(21, CharClass.PIPE, 20),
             // Expected another Pipe, error
             StateBranch.f(21, CharClass.OTHER, 104)
+
         }).collect(Collectors.toMap(
             data -> new Pair<>(data.thisState(), data.nextChar()),
             data -> data.nextState(),
@@ -280,8 +287,8 @@ public class Lexer {
      * Static data
      */
     static final int initState = 0;
-    static final Set<Integer> statesEnd = Set.of(2, 3, 7, 8, 11, 12, 14, 15, 17, 18, 20, 23, 25, 26, 101, 102, 103, 104);
-    static final Set<Integer> statesEndSpecial = Set.of(2, 7, 8, 12, 18, 23, 26);
+    static final Set<Integer> statesEnd = Set.of(2, 3, 7, 8, 11, 12, 14, 15, 17, 18, 20, 23, 25, 26, 31, 32, 101, 102, 103, 104);
+    static final Set<Integer> statesEndSpecial = Set.of(2, 7, 8, 12, 18, 23, 26, 31);
     static final Set<Integer> statesError = Set.of(101, 102, 103, 104);
     static final STF stf = STF.buildTable();
     static Set<String> keywords = Set.of(
@@ -348,11 +355,11 @@ public class Lexer {
     // Does the thing
     public void lex() {
         while (true) {
-            // System.out.println("======== " + this.numChar + " state: " + this.state);
+            System.out.println("======== " + this.numChar + " state: " + this.state);
             var ch = nextChar();
             if (ch == null) {
                 if (this.state == Lexer.initState) {
-                    // System.out.println("the end");
+                    System.out.println("the end");
                     return;
                 } else {
                     // arguably a hack, but neccessary to catch malformed strings
@@ -360,10 +367,10 @@ public class Lexer {
                 }
             }
 
-            // System.out.println("ch: " + ch);
+            System.out.println("ch: " + ch);
 
             var cls = CharClass.classOfChar(ch);
-            // System.out.println(cls);
+            System.out.println(cls);
 
             if (this.state == Lexer.initState) {
                 this.lexemeStartLine = this.lineCounter;
@@ -372,8 +379,8 @@ public class Lexer {
 
             this.state = nextState(state, cls);
 
-            // System.out.println("nexState: " + this.state);
-            // System.out.println("lexeme: " + this.lexemeBuffer);
+            System.out.println("nexState: " + this.state);
+            System.out.println("lexeme: " + this.lexemeBuffer);
 
             this.lexemeBuffer += ch;
             if (statesEnd.contains(this.state)) {
@@ -623,10 +630,7 @@ public class Lexer {
         } else {
             // Default code
             code = """
-let x = #5.#;
-
-// func
-func noop() {}
+func noop() -> Void {}
 """;
         }
 
