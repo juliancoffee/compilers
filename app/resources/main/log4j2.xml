@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%-7c{1}] %msg%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="lexer" level="info" />
+        <!-- <Logger name="parser" level="trace" /> -->
+        <!-- <Logger name="ast" level="trace" /> -->
+
+        <Root level="off">
+            <AppenderRef ref="ConsoleAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>

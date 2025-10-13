@@ -1,0 +1,65 @@
+let greeting: String = "Hello, yall!";
+let counter: Int = 0;
+
+// додавання двох чисел
+func add(a: Int, b: Int) -> Int {
+    return a + b;
+}
+
+func main() {
+    print(greeting);
+
+    // Введення з консолі
+    let name = input();
+    greetUser(name);
+
+    // Цикл for з range
+    for i in range(0, 5, 1) {
+        print("For loop iteration: ", i);
+    }
+
+    // Цикл while
+    var counter = 0;
+    while counter < 3 {
+        print("Counter = " + counter);
+        counter = counter + 1;
+    }
+
+
+    // Умовне розгалуження if-else
+    if flag && (pi > 3.0) {
+        print("Flag is true and pi > 3");
+    } else {
+        print("Condition not met");
+    }
+
+
+    // Використання switch
+    let choice: Int = 2;
+    switch choice {
+        case 0, 1 {
+            print("Choice is 0 or 1");
+        }
+        case range(2, 4) {
+            print("Choice is 2 or 3");
+        }
+        default {
+            print("Choice is something else");
+        }
+    }
+
+
+    // Виклик функції add
+    var sum: Int = add(10, 20);
+    print("Sum = ", sum);
+
+
+    // Логічні вирази
+    var isBig: Bool = sum > 25 && flag || !flag;
+    print("isBig = ", isBig);
+    let a: Int = 5;
+    let b: Int = 10;
+    if a == b {
+        print("equal");
+    }
+}

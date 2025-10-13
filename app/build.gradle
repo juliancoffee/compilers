@@ -17,6 +17,7 @@ repositories {
 }
 
 dependencies {
+    // google json lib
     implementation 'com.google.code.gson:gson:2.10.1'
 
     // testing engine
@@ -25,10 +26,13 @@ dependencies {
 
     // snapshot testing
     testImplementation 'io.github.origin-energy:java-snapshot-testing-junit5:4.+'
-    testImplementation("org.slf4j:slf4j-simple:2.0.0-alpha0")
+    testImplementation 'org.slf4j:slf4j-simple:2.0.0-alpha0'
     testImplementation 'io.github.origin-energy:java-snapshot-testing-plugin-jackson:4.+'
     testImplementation 'com.fasterxml.jackson.core:jackson-core:2.11.3'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.11.3'
+
+    // logging
+    implementation 'org.apache.logging.log4j:log4j-core:2.23.1'
 }
 
 testing {
@@ -37,6 +41,19 @@ testing {
         test {
             // Use JUnit Jupiter test framework
             useJUnitJupiter('5.12.1')
+        }
+    }
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDirs = ['resources/main']
+        }
+    }
+    test {
+        resources {
+            srcDirs = ['resources/test']
         }
     }
 }

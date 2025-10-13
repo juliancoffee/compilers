@@ -158,7 +158,7 @@ class FullTest {
         String input;
         try {
             input = Files.readString(
-                Paths.get("src/main/resources/basic.ms2"),
+                Paths.get("sample/basic.ms2"),
                 StandardCharsets.UTF_8
             );
         } catch (Exception e) {

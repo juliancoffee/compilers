@@ -5,12 +5,13 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-// ToString stuff
 import java.text.MessageFormat;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-// Streams
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -317,6 +318,12 @@ public class Lexer {
         // literals
         "true", "false"
     );
+
+    /*
+     * Globals
+     */
+    private static final Logger log = LogManager.getLogger("lexer");
+
     /*
      * Lexer state
      */
@@ -363,11 +370,11 @@ public class Lexer {
     // Does the thing
     public void lex() {
         while (true) {
-            System.out.println("======== " + this.numChar + " state: " + this.state);
+            log.debug("======== " + this.numChar + " state: " + this.state);
             var ch = nextChar();
             if (ch == null) {
                 if (this.state == Lexer.initState) {
-                    System.out.println("the end");
+                    log.debug("the end");
                     return;
                 } else {
                     // arguably a hack, but neccessary to catch malformed strings
@@ -375,10 +382,10 @@ public class Lexer {
                 }
             }
 
-            System.out.println("ch: " + ch);
+            log.debug("ch: " + ch);
 
             var cls = CharClass.classOfChar(ch);
-            System.out.println(cls);
+            log.debug(cls);
 
             if (this.state == Lexer.initState) {
                 this.lexemeStartLine = this.lineCounter;
@@ -387,8 +394,8 @@ public class Lexer {
 
             this.state = nextState(state, cls);
 
-            System.out.println("nexState: " + this.state);
-            System.out.println("lexeme: " + '"' + this.lexemeBuffer + '"');
+            log.debug("nexState: " + this.state);
+            log.debug("lexeme: " + '"' + this.lexemeBuffer + '"');
 
             this.lexemeBuffer += ch;
             if (statesEnd.contains(this.state)) {
@@ -477,7 +484,7 @@ public class Lexer {
         if (this.state != 11 && this.state != 3) {
             tokenTable.put(span, token);
         }
-        // System.out.println(token);
+        log.debug(token);
 
 
         this.lexemeBuffer = "";
