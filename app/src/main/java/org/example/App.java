@@ -175,9 +175,11 @@ class App {
         } else {
             // Default code
             code = """
-let x = "5.5;
+let x = 5;
 func noop() -> Void {
     let x = 5;
+    x = 6;
+    print(x);
 }
 """;
         }
@@ -195,5 +197,9 @@ func noop() -> Void {
         printTokenTable(lexer.tokenTable, lexer.lineIndex);
         System.out.println("\nColorized output:");
         colorizeAndPrint(code, lexer.tokenTable);
+
+        var parser = new Parser(lexer.tokenTable);
+        parser.parse();
+        System.out.println(parser.parseTree);
     }
 }

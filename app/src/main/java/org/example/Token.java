@@ -1,6 +1,13 @@
 package org.example;
 
-public sealed interface Token {};
+import java.lang.UnsupportedOperationException;
+
+public sealed interface Token extends Comparable<Token> {
+    // just so that I can use it with Pair
+    default int compareTo(Token other) {
+        throw new UnsupportedOperationException();
+    }
+};
 
 record Keyword(String keyword) implements Token {
     @Override
