@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import com.google.gson.GsonBuilder;
 import java.util.*;
 
 class App {
@@ -179,6 +180,7 @@ let x = 5;
 func noop() -> Void {
     let x = 5;
     x = 6;
+    printPi();
     print(x);
 }
 """;
@@ -199,7 +201,15 @@ func noop() -> Void {
         colorizeAndPrint(code, lexer.tokenTable);
 
         var parser = new Parser(lexer.tokenTable);
-        parser.parse();
+        try {
+            parser.parse();
+        } catch (RuntimeException e) {
+            System.err.println("\nParser has failed!");
+            System.err.println(e);
+        }
+
+        var gson = new GsonBuilder().setPrettyPrinting().create();
+        System.out.println(gson.toJson(parser.parseTree));
         System.out.println(parser.parseTree);
     }
 }
