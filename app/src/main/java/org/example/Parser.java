@@ -69,6 +69,7 @@ public class Parser {
      */
     ArrayList<Pair<Pair<Integer, Integer>, Token>> _tokenList;
     int tokenListLen;
+    ArrayList<Integer> lineIndex;
 
     /*
      * Logger
@@ -265,7 +266,7 @@ public class Parser {
 
 
     void parseTopStatementList() {
-        log.debug("parse top stmt list");
+        log.debug("parse top stmt's list");
 
         while (this.numToken < tokenListLen) {
             this.parseTree.stmts().add(this.parseTopStmt());
@@ -282,7 +283,7 @@ public class Parser {
     // the location
     RuntimeException fail(Pair<Integer, Integer> span, Token token) {
         throw new RuntimeException(
-            "at " + span + " unexpected token: " + token
+            "at " + formatSpan(span) + " unexpected token: " + token
         );
     }
 
@@ -290,7 +291,7 @@ public class Parser {
         try {
             var token = _tokenList.get(this.numToken);
             this.numToken += 1;
-            log.debug("" + "[" + this.numToken +"] " + token);
+            log.debug("" + "[" + this.numToken +"] " + formatPair(token));
             return token;
         } catch (IndexOutOfBoundsException e) {
             return null;
@@ -327,7 +328,7 @@ public class Parser {
 > At {0} unexpected token {1}.
 > Hint: expected Ident
 """,
-                    span, token)
+                    formatSpan(span), token)
             );
         }
     }
@@ -343,17 +344,33 @@ public class Parser {
 > At {0} unexpected token {1}.
 > Hint: expected {2}
 """,
-                    span, token, expected)
+                    formatSpan(span), token, expected)
             );
         }
     }
 
-    public Parser(TreeMap<Pair<Integer, Integer>, Token> tokenTable) {
+    String formatSpan(Pair<Integer, Integer> span) {
+        return SpanUtils.formatSpan(span, this.lineIndex);
+    }
+
+    String formatPair(Pair<Pair<Integer, Integer>, Token> pair) {
+        var span = pair.first();
+        var token = pair.second();
+        String formattedSpan = SpanUtils.formatSpan(span, this.lineIndex);
+
+        return String.format("%s at (%s)", token, formattedSpan);
+    }
+
+    public Parser(
+        TreeMap<Pair<Integer, Integer>, Token> tokenTable,
+        ArrayList<Integer> lineIndex
+    ) {
         this._tokenList = tokenTable
             .entrySet()
             .stream()
             .map(kv -> new Pair<>(kv.getKey(), kv.getValue()))
             .collect(Collectors.toCollection(ArrayList::new));
+        this.lineIndex = lineIndex;
         this.tokenListLen = this._tokenList.size() - 1;
     }
 }

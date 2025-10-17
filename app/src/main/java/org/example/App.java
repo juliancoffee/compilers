@@ -200,7 +200,7 @@ func noop() -> Void {
         System.out.println("\nColorized output:");
         colorizeAndPrint(code, lexer.tokenTable);
 
-        var parser = new Parser(lexer.tokenTable);
+        var parser = new Parser(lexer.tokenTable, lexer.lineIndex);
         try {
             parser.parse();
         } catch (RuntimeException e) {

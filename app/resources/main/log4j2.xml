@@ -7,7 +7,7 @@
     </Appenders>
     <Loggers>
         <Logger name="lexer" level="info" />
-        <Logger name="parser" level="info" />
+        <Logger name="parser" level="trace" />
         <!-- <Logger name="ast" level="trace" /> -->
 
         <Root level="off">
