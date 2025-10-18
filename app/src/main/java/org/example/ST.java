@@ -33,9 +33,10 @@ public record ST(ArrayList<ST.TopLevelStmt> stmts) {
                 PrintStmt,
                 AssignStmt,
                 FuncCallStmt,
+                ForStmt,
                 ReturnStmt {}
 
-    public sealed interface Expression
+    public sealed interface Expression extends Iter
             permits LiteralExpr, IdentExpr, FuncCallExpr, BinOpExpr {}
 
     public sealed interface LiteralExpr extends Expression
@@ -108,4 +109,14 @@ public record ST(ArrayList<ST.TopLevelStmt> stmts) {
 
     // ReturnStmt = 'return' Expression ';'
     public record ReturnStmt(Expression returnExpr) implements Stmt {}
+
+    // Iterable = Expression
+    //          | 'range' '(' Expression ',' Expression ',' Expression ')'
+    sealed interface Iter permits Expression, RangeExpr {}
+    record RangeExpr(Integer from, Integer to, Integer step)
+        implements Iter {}
+
+    public record ForStmt(
+        String forIdent, Iter iterable, ArrayList<Stmt> block
+    ) implements Stmt {}
 }

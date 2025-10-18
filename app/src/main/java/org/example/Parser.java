@@ -148,6 +148,38 @@ public class Parser {
         return new ST.ReturnStmt(expr);
     }
 
+    ST.ForStmt parseForStmt() {
+        var iterName = this.consumeIdent();
+
+        this.consumeKeyword("in");
+
+        ST.Iter iterable;
+
+        var nextToken = this.nextPair();
+        switch (nextToken) {
+            case Pair(var span, Keyword keyword)
+                when keyword.isKeyword("range") -> {
+                this.consumeSymbol("(");
+                var from = this.consumeIntLiteral();
+                this.consumeSymbol(",");
+                var to = this.consumeIntLiteral();
+                this.consumeSymbol(",");
+                var step = this.consumeIntLiteral();
+                // we could have trailing commas here, but we don't
+                this.consumeSymbol(")");
+                iterable = new ST.RangeExpr(from, to, step);
+            }
+            default -> {
+                this.backPair();
+                iterable = this.parseExpression();
+            }
+        }
+
+        var stmts = this.parseBlock();
+
+        return new ST.ForStmt(iterName, iterable, stmts);
+    }
+
     ArrayList<ST.Stmt> parseBlock() {
         log.debug("parse block");
 
@@ -165,6 +197,7 @@ public class Parser {
                         case "var" -> stmts.add(this.parseVarStmt());
                         case "print" -> stmts.add(this.parsePrintStmt());
                         case "return" -> stmts.add(this.parseReturnStmt());
+                        case "for" -> stmts.add(this.parseForStmt());
                         default -> {
                             var keywords = Set.of(
                                 "let", "var", "print", "return"
@@ -577,6 +610,10 @@ public class Parser {
         this.consumeToken(new Symbol(symbol));
     }
 
+    void consumeKeyword(String keyword) {
+        this.consumeToken(new Keyword(keyword));
+    }
+
     String consumeIdent() {
         var next = this.nextPair();
         var span = next.first();
@@ -585,6 +622,17 @@ public class Parser {
             return ident;
         } else {
             throw fail(span, token, "expected Ident");
+        }
+    }
+
+    Integer consumeIntLiteral() {
+        var next = this.nextPair();
+        var span = next.first();
+        var token = next.second();
+        if (token instanceof IntLiteral(String intLiteral)) {
+            return Integer.parseInt(intLiteral);
+        } else {
+            throw fail(span, token, "expected IntLiteral");
         }
     }
 

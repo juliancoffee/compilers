@@ -197,6 +197,22 @@ func sumSquared(x: Double, y: Double) -> String { return x * x + y * y; }
             code = """
 let x = square(1 + square(2));
 """;
+            code = """
+func main() {
+    let x = 5;
+    x = 6;
+
+    // Цикл for з range
+    for i in range(0, 5, 1) {
+        print("For loop iteration: ", i);
+    }
+
+    // Цикл for з range
+    for c in "hello" {
+        print("For loop iteration: ", c);
+    }
+}
+""";
         }
 
         var lexer = new Lexer(code);
