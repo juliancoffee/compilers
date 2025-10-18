@@ -90,7 +90,6 @@ public class Parser {
         Pair<Pair<Integer, Integer>, Token> nextToken;
         boolean allow_comma = false;
         while (!close) {
-            this.checkpoint();
             nextToken = this.nextPair();
             switch (nextToken) {
                 // if got `)`, finish with arguments
@@ -108,7 +107,8 @@ public class Parser {
                     }
                 }
                 case Pair(var span, Token token) -> {
-                    this.rollback();
+                    // Back and There again
+                    this.backPair();
                     exprs.add(this.parseExpression());
                     allow_comma = true;
                 }
@@ -183,6 +183,8 @@ public class Parser {
 
                     try {
                         stmts.add(this.parseAssignStmt(ident.ident()));
+                        // NOTE: don't forget to commit
+                        this.commit();
                         continue;
                     } catch (RuntimeException e) {
                         this.rollback();
@@ -190,6 +192,7 @@ public class Parser {
 
                     // NOTE: last one without rollbacks
                     stmts.add(this.parseFuncCallStmt(ident.ident()));
+                    this.commit();
                 }
                 // if got `}`, collect and return
                 case Pair(var span, Symbol token)
@@ -308,6 +311,10 @@ public class Parser {
         );
     }
 
+    void backPair() {
+        this.numToken -= 1;
+    }
+
     Pair<Pair<Integer, Integer>, Token> nextPair() {
         try {
             var token = _tokenList.get(this.numToken);
@@ -319,9 +326,14 @@ public class Parser {
         }
     }
 
+    // NOTE: every checkpoint must end with commit
     void checkpoint() {
         this.checkpointToken = Optional.of(this.numToken);
         log.debug("checkpoint to " + this.checkpointToken);
+    }
+
+    void commit() {
+        this.checkpointToken = Optional.empty();
     }
 
     void rollback() {
@@ -329,7 +341,6 @@ public class Parser {
         this.numToken = this
             .checkpointToken
             .orElseThrow(() -> new RuntimeException("rollback with no checkpoint"));
-        this.checkpointToken = Optional.empty();
     }
 
     void consumeSymbol(String symbol) {
