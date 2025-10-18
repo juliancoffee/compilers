@@ -162,10 +162,13 @@ public class Parser {
                 case Pair(var span, Keyword token) -> {
                     switch (token.keyword()) {
                         case "let" -> stmts.add(this.parseLetStmt());
+                        case "var" -> stmts.add(this.parseVarStmt());
                         case "print" -> stmts.add(this.parsePrintStmt());
                         case "return" -> stmts.add(this.parseReturnStmt());
                         default -> {
-                            var keywords = Set.of("let", "print", "return");
+                            var keywords = Set.of(
+                                "let", "var", "print", "return"
+                            );
                             throw fail(
                                 span,
                                 token,
@@ -415,9 +418,12 @@ public class Parser {
         return this.parseArithExpr();
     }
 
-    ST.LetStmt parseLetStmt() {
-        log.debug("parse let stmt");
+    @FunctionalInterface
+    interface DeclFactory {
+        ST.Stmt build(String name, Optional<ST.TY> type, ST.Expression expr);
+    }
 
+    ST.Stmt parseDeclStmt(DeclFactory builder) {
         // expect ident
         var name = this.consumeIdent();
 
@@ -440,7 +446,23 @@ public class Parser {
         // let must end with `;`
         this.consumeSymbol(";");
 
-        return new ST.LetStmt(name, varType, expr);
+        return builder.build(name, varType, expr);
+    }
+
+    ST.VarStmt parseVarStmt() {
+        log.debug("parse var stmt");
+
+        return (ST.VarStmt) this.parseDeclStmt(
+            (name, varType, expr) -> new ST.VarStmt(name, varType, expr)
+        );
+    }
+
+    ST.LetStmt parseLetStmt() {
+        log.debug("parse let stmt");
+
+        return (ST.LetStmt) this.parseDeclStmt(
+            (name, varType, expr) -> new ST.LetStmt(name, varType, expr)
+        );
     }
 
     ST.TopLevelStmt parseTopStmt() {

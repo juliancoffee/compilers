@@ -29,6 +29,7 @@ public record ST(ArrayList<ST.TopLevelStmt> stmts) {
     public sealed interface Stmt
             permits
                 TopLevelStmt,
+                VarStmt,
                 PrintStmt,
                 AssignStmt,
                 FuncCallStmt,
@@ -67,7 +68,11 @@ public record ST(ArrayList<ST.TopLevelStmt> stmts) {
     public record BinOpExpr(BIN_OP op, Expression a, Expression b)
         implements Expression {}
 
-    // LetStmt = 'let' Ident '=' Expression ';'
+    // VarStmt = 'var' Ident [ ':' Type ] '=' Expression ';'
+    public record VarStmt(String letName, Optional<TY> letType, Expression expr)
+        implements Stmt {}
+
+    // LetStmt = 'let' Ident [ ':' Type ] '=' Expression ';'
     public record LetStmt(String letName, Optional<TY> letType, Expression expr)
         implements TopLevelStmt {}
 

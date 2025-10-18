@@ -144,6 +144,10 @@ class SimpleLexTest {
 
 
 class SimpleParseTest {
+    private static Optional<ST.TY> none() {
+        return Optional.empty();
+    }
+
     private ST parseCode(String code) {
         var lexer = new Lexer(code);
         lexer.lex();
@@ -161,7 +165,7 @@ class SimpleParseTest {
         var actualTree = parseCode(input);
 
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x", new ST.IntLiteralExpr(5))
+            new ST.LetStmt("x", none(), new ST.IntLiteralExpr(5))
         )));
 
         assertEquals(expectedTree, actualTree);
@@ -173,7 +177,7 @@ class SimpleParseTest {
         var actualTree = parseCode(input);
 
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x",
+            new ST.LetStmt("x", none(),
                 new ST.BinOpExpr(
                     ST.BIN_OP.ADD,
                     new ST.IntLiteralExpr(5),
@@ -191,7 +195,7 @@ class SimpleParseTest {
         var actualTree = parseCode(input);
 
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x",
+            new ST.LetStmt("x", none(),
                 new ST.BinOpExpr(
                     ST.BIN_OP.SUB,
                     new ST.IntLiteralExpr(5),
@@ -210,7 +214,7 @@ class SimpleParseTest {
 
         // Expected: ((5 - 2) + 3)
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x",
+            new ST.LetStmt("x", none(),
                 new ST.BinOpExpr(
                     ST.BIN_OP.ADD,
                     new ST.BinOpExpr(
@@ -233,7 +237,7 @@ class SimpleParseTest {
 
         // Expected: (((5 - 7) + 2) - 3)
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x",
+            new ST.LetStmt("x", none(),
                 new ST.BinOpExpr(ST.BIN_OP.SUB,
                     new ST.BinOpExpr(ST.BIN_OP.ADD,
                         new ST.BinOpExpr(ST.BIN_OP.SUB,
@@ -256,7 +260,7 @@ class SimpleParseTest {
         var actualTree = parseCode(input);
 
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x",
+            new ST.LetStmt("x", none(),
                 new ST.FuncCallExpr("myFunc", new ArrayList<>())
             )
         )));
@@ -270,7 +274,7 @@ class SimpleParseTest {
         var actualTree = parseCode(input);
 
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x",
+            new ST.LetStmt("x", none(),
                 new ST.FuncCallExpr("myFunc", new ArrayList<>(List.of(
                     new ST.IntLiteralExpr(5)
                 )))
@@ -286,7 +290,7 @@ class SimpleParseTest {
         var actualTree = parseCode(input);
 
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x",
+            new ST.LetStmt("x", none(),
                 new ST.FuncCallExpr("myFunc", new ArrayList<>(List.of(
                     new ST.IdentExpr("y")
                 )))
@@ -303,7 +307,7 @@ class SimpleParseTest {
 
         // Expected: (5 + myFunc())
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x",
+            new ST.LetStmt("x", none(),
                 new ST.BinOpExpr(
                     ST.BIN_OP.ADD,
                     new ST.IntLiteralExpr(5),
@@ -321,7 +325,7 @@ class SimpleParseTest {
         var actualTree = parseCode(input);
 
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x",
+            new ST.LetStmt("x", none(),
                 new ST.FuncCallExpr("funcOne", new ArrayList<>(List.of(
                     new ST.FuncCallExpr("funcTwo", new ArrayList<>())
                 )))
@@ -338,7 +342,7 @@ class SimpleParseTest {
 
         // Expected: (5 - funcOne()) + funcTwo(y)
         var expectedTree = new ST(new ArrayList<>(List.of(
-            new ST.LetStmt("x",
+            new ST.LetStmt("x", none(),
                 new ST.BinOpExpr(
                     ST.BIN_OP.ADD,
                     new ST.BinOpExpr(
@@ -363,7 +367,7 @@ class SimpleParseTest {
 
             // Expected: a + (b * c)
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.BinOpExpr(
                         ST.BIN_OP.ADD,
                         new ST.IdentExpr("a"),
@@ -386,7 +390,7 @@ class SimpleParseTest {
 
             // Expected: a - (b / c)
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.BinOpExpr(
                         ST.BIN_OP.SUB,
                         new ST.IdentExpr("a"),
@@ -409,7 +413,7 @@ class SimpleParseTest {
 
             // Expected: (a * b) * c
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.BinOpExpr(
                         ST.BIN_OP.MUL,
                         new ST.BinOpExpr(
@@ -432,7 +436,7 @@ class SimpleParseTest {
 
             // Expected: (a / b) / c
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.BinOpExpr(
                         ST.BIN_OP.DIV,
                         new ST.BinOpExpr(
@@ -455,7 +459,7 @@ class SimpleParseTest {
 
             // Expected: (a * b) / c
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.BinOpExpr(
                         ST.BIN_OP.DIV,
                         new ST.BinOpExpr(
@@ -478,7 +482,7 @@ class SimpleParseTest {
 
             // Expected: (a + (b * c)) - (d / e)
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.BinOpExpr(
                         ST.BIN_OP.SUB,
                         new ST.BinOpExpr(
@@ -509,7 +513,7 @@ class SimpleParseTest {
 
             // Expected: (myFunc() * b)
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.BinOpExpr(
                         ST.BIN_OP.MUL,
                         new ST.FuncCallExpr("myFunc", new ArrayList<>()),
@@ -528,7 +532,7 @@ class SimpleParseTest {
 
             // Expected: myFunc(a, 5, b)
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.FuncCallExpr("myFunc", new ArrayList<>(List.of(
                         new ST.IdentExpr("a"),
                         new ST.IntLiteralExpr(5),
@@ -547,7 +551,7 @@ class SimpleParseTest {
 
             // Expected: myFunc(a * 5)
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.FuncCallExpr("myFunc", new ArrayList<>(List.of(
                         new ST.BinOpExpr(
                             ST.BIN_OP.MUL,
@@ -568,7 +572,7 @@ class SimpleParseTest {
 
             // Expected: (a * myFunc(b + c, 10)) / d
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.BinOpExpr(
                         ST.BIN_OP.DIV,
                         new ST.BinOpExpr(
@@ -598,7 +602,7 @@ class SimpleParseTest {
 
             // Expected: funcOne(a, funcTwo(b / c))
             var expectedTree = new ST(new ArrayList<>(List.of(
-                new ST.LetStmt("x",
+                new ST.LetStmt("x", none(),
                     new ST.FuncCallExpr("funcOne", new ArrayList<>(List.of(
                         new ST.IdentExpr("a"),
                         new ST.FuncCallExpr("funcTwo", new ArrayList<>(List.of(
