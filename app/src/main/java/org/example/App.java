@@ -181,14 +181,8 @@ func noop() -> Void {
     let x = 5;
     x = 6;
     printPi();
-    print(x);
-    print(x, y, y, x);
-    print();
-    print(
-        x,
-        y,
-        x,
-    );
+    printSum(x, y);
+    print(x, y);
 }
 """;
         }

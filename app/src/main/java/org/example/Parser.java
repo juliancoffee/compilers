@@ -41,16 +41,19 @@ record IdentExpr(String identExpr) implements Expression {};
 // TODO: args
 record FuncStmt(String funcName, ArrayList<Stmt> block) implements TopLevelStmt {}
 
-// PrintStmt = 'print' '(' [ Expression { ',' Expression } [ ',' ] ] ')' ';'
+// PrintStmt = 'print' ArgsFragment ';'
+// ArgsFragment = '(' [ Expression { ',' Expression } [ ',' ] ] ')'
+//
+// Simply put, allows zero or more expressions, separated by comma.
+// Comma optionally may be trailing.
 record PrintStmt(ArrayList<Expression> printExprs) implements Stmt {}
 
 // AssignStmt = Ident '=' Expression ';'
 record AssignStmt(String assignIdent, Expression expr) implements Stmt {}
 
 // FuncCallStmt = FuncCall ';'
-// FuncCall = Ident '(' ')'
-// TODO: args
-record FuncCallStmt(String callIdent) implements Stmt {}
+// FuncCall = Ident ArgsFragment
+record FuncCallStmt(String callIdent, ArrayList<Expression> args) implements Stmt {}
 
 public class Parser {
     /*
@@ -76,7 +79,7 @@ public class Parser {
      */
     private static final Logger log = LogManager.getLogger("parser");
 
-    // Not a *real* parsing function.
+    // Not a *real* parsing function, just a helper.
     // Parses arguments fragment for function call or print.
     //
     // Will return zero or more arguments
@@ -148,15 +151,13 @@ public class Parser {
     FuncCallStmt parseFuncCallStmt(String ident) {
         log.debug("parse func call");
 
-        this.consumeSymbol("(");
-        /*
-         * TODO: args
-         */
-        this.consumeSymbol(")");
+        // parse args
+        var exprs = this.parseArgsFragment();
 
         // expect `;`
         this.consumeSymbol(";");
-        return new FuncCallStmt(ident);
+
+        return new FuncCallStmt(ident, exprs);
     }
 
     ArrayList<Stmt> parseBlock() {
