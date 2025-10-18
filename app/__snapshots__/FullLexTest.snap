@@ -1,4 +1,4 @@
-FullTest.appOk=[
+FullLexTest.appOk=[
   {
     "((1, 1), (1, 3))": {
       "keyword": "let"

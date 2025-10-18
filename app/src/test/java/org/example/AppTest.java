@@ -141,7 +141,7 @@ class SimpleTest {
 }
 
 @ExtendWith({SnapshotExtension.class})
-class FullTest {
+class FullLexTest {
     private Expect expect;
 
     @Test void appOk() {
