@@ -176,12 +176,19 @@ class App {
         } else {
             // Default code
             code = """
-let x = 5;
+let y = 5;
 func noop() -> Void {
     let x = 5;
     x = 6;
     printPi();
     print(x);
+    print(x, y, y, x);
+    print();
+    print(
+        x,
+        y,
+        x,
+    );
 }
 """;
         }

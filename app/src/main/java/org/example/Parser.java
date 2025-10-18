@@ -41,7 +41,7 @@ record IdentExpr(String identExpr) implements Expression {};
 // TODO: args
 record FuncStmt(String funcName, ArrayList<Stmt> block) implements TopLevelStmt {}
 
-// PrintStmt = 'print' '(' Expression { ',' Expression } ')' ';'
+// PrintStmt = 'print' '(' [ Expression { ',' Expression } [ ',' ] ] ')' ';'
 record PrintStmt(ArrayList<Expression> printExprs) implements Stmt {}
 
 // AssignStmt = Ident '=' Expression ';'
@@ -76,9 +76,11 @@ public class Parser {
      */
     private static final Logger log = LogManager.getLogger("parser");
 
-    PrintStmt parsePrintStmt() {
-        log.debug("parse print");
-
+    // Not a *real* parsing function.
+    // Parses arguments fragment for function call or print.
+    //
+    // Will return zero or more arguments
+    ArrayList<Expression> parseArgsFragment() {
         // expect `(`
         this.consumeSymbol("(");
 
@@ -86,6 +88,7 @@ public class Parser {
 
         boolean close = false;
         Pair<Pair<Integer, Integer>, Token> nextToken;
+        boolean allow_comma = false;
         while (!close) {
             this.checkpoint();
             nextToken = this.nextPair();
@@ -95,17 +98,37 @@ public class Parser {
                     when token.equals(new Symbol(")")) -> {
                     close = true;
                 }
+                // if got ',', check if it's allowed (if it follows expression)
+                case Pair(var span, Symbol token)
+                    when token.equals(new Symbol(",")) -> {
+                    if (allow_comma) {
+                        allow_comma = false;
+                    } else {
+                        throw fail(span, token);
+                    }
+                }
                 case Pair(var span, Token token) -> {
                     this.rollback();
                     exprs.add(this.parseExpression());
+                    allow_comma = true;
                 }
             }
         }
 
+
+        return exprs;
+    }
+
+    PrintStmt parsePrintStmt() {
+        log.debug("parse print");
+
+        // parse arguments
+        var args = parseArgsFragment();
+
         // expect `;`
         this.consumeSymbol(";");
 
-        return new PrintStmt(exprs);
+        return new PrintStmt(args);
     }
 
     AssignStmt parseAssignStmt(String ident) {
@@ -279,8 +302,6 @@ public class Parser {
         this.parseTopStatementList();
     }
 
-    // TODO: we need something better here, with line index to pinpoint
-    // the location
     RuntimeException fail(Pair<Integer, Integer> span, Token token) {
         throw new RuntimeException(
             "at " + formatSpan(span) + " unexpected token: " + token
