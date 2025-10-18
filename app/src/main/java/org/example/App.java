@@ -188,6 +188,15 @@ func noop() -> Void {
             code = """
 let x = 1 + 2 * 3 + 4;
 """;
+            code = """
+func noop() -> Void {}
+func simpleNoop() {}
+func getName() -> String { return input(); }
+func sumSquared(x: Double, y: Double) -> String { return x * x + y * y; }
+""";
+            code = """
+let x = square(1 + square(2));
+""";
         }
 
         var lexer = new Lexer(code);
@@ -216,7 +225,10 @@ let x = 1 + 2 * 3 + 4;
             }
         }
 
-        var gson = new GsonBuilder().setPrettyPrinting().create();
+        var gson = new GsonBuilder()
+            .registerTypeAdapter(Optional.class, new OptionalAdapter())
+            .setPrettyPrinting()
+            .create();
         System.out.println(gson.toJson(parser.parseTree));
         System.out.println(parser.parseTree);
     }

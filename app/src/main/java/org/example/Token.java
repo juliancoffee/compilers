@@ -11,6 +11,10 @@ public sealed interface Token extends Comparable<Token> {
     default boolean isSym(String other) {
         return this.equals(new Symbol(other));
     }
+
+    default boolean isKeyword(String other) {
+        return this.equals(new Keyword(other));
+    }
 };
 
 record Keyword(String keyword) implements Token {

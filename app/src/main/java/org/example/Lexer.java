@@ -230,8 +230,6 @@ public class Lexer {
     static Set<String> keywords = Set.of(
         // declarators
         "var", "let",
-        // input
-        "input",
         // control flow
         "if", "else", "switch", "case", "default",
         // loops

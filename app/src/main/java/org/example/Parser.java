@@ -140,6 +140,14 @@ public class Parser {
         return new ST.FuncCallStmt(ident, exprs);
     }
 
+    ST.ReturnStmt parseReturnStmt() {
+        var expr = this.parseExpression();
+
+        this.consumeSymbol(";");
+
+        return new ST.ReturnStmt(expr);
+    }
+
     ArrayList<ST.Stmt> parseBlock() {
         log.debug("parse block");
 
@@ -155,12 +163,15 @@ public class Parser {
                     switch (token.keyword()) {
                         case "let" -> stmts.add(this.parseLetStmt());
                         case "print" -> stmts.add(this.parsePrintStmt());
-                        default -> throw fail(
-                            span,
-                            token,
-                            "only `let` and `print` keywords " +
-                            "are allowed at the start"
-                        );
+                        case "return" -> stmts.add(this.parseReturnStmt());
+                        default -> {
+                            var keywords = Set.of("let", "print", "return");
+                            throw fail(
+                                span,
+                                token,
+                                "keywords expected: " + keywords
+                            );
+                        }
                     }
                 }
                 case Pair(var span, Ident ident) -> {
@@ -193,36 +204,108 @@ public class Parser {
         }
     }
 
+    ST.TY parseType() {
+        var nextToken = this.nextPair();
+
+        return switch (nextToken) {
+            case Pair(var span, Keyword keyword) -> switch (keyword.keyword()) {
+                case "Int" -> ST.TY.INT;
+                case "Double" -> ST.TY.FLOAT;
+                case "Bool" -> ST.TY.BOOL;
+                case "String" -> ST.TY.STRING;
+                case "Void" -> ST.TY.VOID;
+                default -> throw fail(
+                    span,
+                    keyword,
+                    "expected a type"
+                );
+            };
+            case Pair(var span, Token token) -> throw fail(
+                span,
+                token,
+                "expected a type"
+            );
+        };
+    }
+
+    Pair<String, ST.TY> parseParamSpec() {
+        // expect ident
+        var name = this.consumeIdent();
+
+        // expect ':'
+        this.consumeSymbol(":");
+
+        var type = this.parseType();
+
+        return new Pair<>(name, type);
+    }
+
+    ArrayList<Pair<String, ST.TY>> parseParamList() {
+        // expect `(`
+        this.consumeSymbol("(");
+
+        var paramList = new ArrayList<Pair<String, ST.TY>>();
+
+        boolean close = false;
+        Pair<Pair<Integer, Integer>, Token> nextToken;
+        boolean allow_comma = false;
+        while (!close) {
+            nextToken = this.nextPair();
+            switch (nextToken) {
+                // if got `)`, finish with arguments
+                case Pair(var span, Symbol token)
+                    when token.equals(new Symbol(")")) -> {
+                    close = true;
+                }
+                // if got ',', check if it's allowed (if it follows paramspec)
+                case Pair(var span, Symbol token)
+                    when token.equals(new Symbol(",")) -> {
+                    if (allow_comma) {
+                        allow_comma = false;
+                    } else {
+                        throw fail(span, token, "',' can only follow argument");
+                    }
+                }
+                case Pair(var span, Token token) -> {
+                    // There and Back Again
+                    this.backPair();
+                    paramList.add(this.parseParamSpec());
+                    allow_comma = true;
+                }
+            }
+        }
+
+        return paramList;
+    }
+
     ST.FuncStmt parseFuncStmt() {
         log.debug("parse func stmt");
 
         // expect ident
         var name = this.consumeIdent();
 
-        // expect `(`
-        this.consumeSymbol("(");
+        // parse parameter list
+        var paramList = this.parseParamList();
 
-        /*
-         * TODO: more
-         */
+        // try an optional type arrow
+        Optional<ST.TY> returnType = Optional.empty();
+        var nextToken = this.nextPair();
+        switch (nextToken) {
+            case Pair(var span, Symbol token)
+                when token.isSym("->") -> {
 
-        // expect `)`
-        this.consumeSymbol(")");
-
-        /*
-         * TODO: parse *optional* type arrow
-         */
-        this.consumeSymbol("->");
-        this.nextPair();
+                returnType = Optional.of(this.parseType());
+            }
+            default -> this.backPair();
+        }
 
         var stmts = this.parseBlock();
-
-        return new ST.FuncStmt(name, stmts);
+        return new ST.FuncStmt(name, paramList, returnType, stmts);
     }
 
     ST.Expression parseFuncCallExpr(String ident) {
         log.debug("parse fun call");
-        var exprs = parseArgsFragment();
+        var exprs = this.parseArgsFragment();
         return new ST.FuncCallExpr(ident, exprs);
     }
 
@@ -251,9 +334,19 @@ public class Parser {
                 var val = Integer.parseInt(token.intLiteral());
                 return new ST.IntLiteralExpr(val);
             }
+            case Pair(var span, FloatLiteral token) -> {
+                var val = Double.parseDouble(token.floatLiteral());
+                return new ST.FloatLiteralExpr(val);
+            }
+            case Pair(var span, StrLiteral token) -> {
+                return new ST.StrLiteralExpr(token.strLiteral());
+            }
+            /*
+             * NOTE: we don't parse BoolLiteral here, it should go with RelExpr
+             */
             // not ident, not an int, fail
             case Pair(var span, Token token) -> throw fail(
-                span, token, "expected IntLiteral or Ident"
+                span, token, "expected Literal or Ident"
             );
         }
     }
@@ -328,9 +421,15 @@ public class Parser {
         // expect ident
         var name = this.consumeIdent();
 
-        /*
-         * TODO: *optional* type
-         */
+        // try an optional type hint
+        Optional<ST.TY> varType = Optional.empty();
+        var nextToken = this.nextPair();
+        switch (nextToken) {
+            case Pair(var span, Symbol token) when token.isSym(":") -> {
+                varType = Optional.of(this.parseType());
+            }
+            default -> this.backPair();
+        }
 
         // expect `=`
         this.consumeSymbol("=");
@@ -341,7 +440,7 @@ public class Parser {
         // let must end with `;`
         this.consumeSymbol(";");
 
-        return new ST.LetStmt(name, expr);
+        return new ST.LetStmt(name, varType, expr);
     }
 
     ST.TopLevelStmt parseTopStmt() {
@@ -394,7 +493,7 @@ public class Parser {
         }
     }
 
-    Integer checkpointDepth() {
+    int checkpointDepth() {
         var checkpointStackDepth = this.checkpoints.size() - 1;
         assert checkpointStackDepth >= 0 : "checkpoint depth is negative";
 
@@ -402,6 +501,10 @@ public class Parser {
     }
 
     Optional biggestError() {
+        if (this.checkpoints.isEmpty()) {
+            return Optional.empty();
+        }
+
         var biggestError = this
             .checkpoints
             .get(this.checkpointDepth())

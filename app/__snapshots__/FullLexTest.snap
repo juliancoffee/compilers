@@ -256,7 +256,7 @@ FullLexTest.appOk=[
       "symbol": "="
     },
     "((24, 16), (24, 20))": {
-      "keyword": "input"
+      "ident": "input"
     },
     "((24, 21), (24, 21))": {
       "symbol": "("

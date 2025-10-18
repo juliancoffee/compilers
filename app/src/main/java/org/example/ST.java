@@ -1,6 +1,6 @@
 package org.example;
 
-import java.util.ArrayList;
+import java.util.*;
 
 // Program = { LetStmt | FuncStmt }
 //
@@ -15,17 +15,33 @@ public record ST(ArrayList<ST.TopLevelStmt> stmts) {
         DIV,
     }
 
+    public enum TY {
+        INT,
+        FLOAT,
+        BOOL,
+        STRING,
+        VOID,
+    }
+
     public sealed interface TopLevelStmt extends Stmt
             permits LetStmt, FuncStmt {}
 
     public sealed interface Stmt
-            permits TopLevelStmt, PrintStmt, AssignStmt, FuncCallStmt {}
+            permits
+                TopLevelStmt,
+                PrintStmt,
+                AssignStmt,
+                FuncCallStmt,
+                ReturnStmt {}
 
     public sealed interface Expression
             permits LiteralExpr, IdentExpr, FuncCallExpr, BinOpExpr {}
 
     public sealed interface LiteralExpr extends Expression
-            permits IntLiteralExpr {}
+            permits
+                IntLiteralExpr,
+                FloatLiteralExpr,
+                StrLiteralExpr {}
 
     // IdentExpr = Ident
     public record IdentExpr(String identExpr)
@@ -35,21 +51,37 @@ public record ST(ArrayList<ST.TopLevelStmt> stmts) {
     public record FuncCallExpr(String callIdent, ArrayList<Expression> args)
         implements Expression {}
 
-    // IntLiteralExpr = IntLiteral
+    // IntLiteralExpr = Int
     public record IntLiteralExpr(Integer intLiteral)
         implements LiteralExpr {}
 
+    // FloatLiteralExpr = Float
+    public record FloatLiteralExpr(Double floatLiteral)
+        implements LiteralExpr {}
+
+    // StrLiteralExpr = String
+    public record StrLiteralExpr(String strLiteral)
+        implements LiteralExpr {}
+
+    // Abstract thingy for every binary operation, including logical
     public record BinOpExpr(BIN_OP op, Expression a, Expression b)
         implements Expression {}
 
     // LetStmt = 'let' Ident '=' Expression ';'
-    public record LetStmt(String letName, Expression expr)
+    public record LetStmt(String letName, Optional<TY> letType, Expression expr)
         implements TopLevelStmt {}
 
-    // FuncStmt = 'func' Ident '(' ')' Block
-    // Block = { Stmt }
-    // TODO: args
-    public record FuncStmt(String funcName, ArrayList<Stmt> block)
+    // FuncStmt = 'func' Ident ParamList [ '->' Type ] Block
+    // Block = '{' { Stmt } '}'
+    //
+    // ParamList = '(' [ ParamSpec { ',' ParamSpec } [ ',' ] ] ')'
+    // ParamSpec = Ident ':' Type
+    public record FuncStmt(
+        String funcName,
+        ArrayList<Pair<String, TY>> paramList,
+        Optional<TY> returnType,
+        ArrayList<Stmt> block
+    )
         implements TopLevelStmt {}
 
     // PrintStmt = 'print' ArgsFragment ';'
@@ -68,4 +100,7 @@ public record ST(ArrayList<ST.TopLevelStmt> stmts) {
     // FuncCall = Ident ArgsFragment
     public record FuncCallStmt(String callIdent, ArrayList<Expression> args)
         implements Stmt {}
+
+    // ReturnStmt = 'return' Expression ';'
+    public record ReturnStmt(Expression returnExpr) implements Stmt {}
 }
