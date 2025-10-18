@@ -212,8 +212,8 @@ func noop() -> Void {
             parser.parse();
         } catch (RuntimeException e) {
             System.err.println("\nParser has failed!");
-            if (parser.biggestError.isPresent()) {
-                System.err.println(parser.biggestError.get());
+            if (parser.biggestError().isPresent()) {
+                System.err.println(parser.biggestError().get());
             } else {
                 System.err.println(e);
             }

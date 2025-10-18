@@ -8,18 +8,39 @@ import java.text.MessageFormat;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+record Checkpoint(
+    Integer checkpoint,
+    Optional<RuntimeException> biggestError,
+    Integer maxRollbackLen,
+    Integer maxRollbackToken
+) {
+    Checkpoint updateError(
+        RuntimeException newError, int checkpointToken, int numToken
+    ) {
+        var newRollbackLen = numToken - checkpointToken;
+        if (this.maxRollbackLen > newRollbackLen) {
+            return this;
+        }
+        if (this.maxRollbackToken > numToken) {
+            return this;
+        }
+
+        var newRollbackToken = numToken;
+        return new Checkpoint(
+            checkpoint,
+            Optional.of(newError),
+            newRollbackLen,
+            newRollbackToken
+        );
+    }
+}
+
 public class Parser {
     /*
      * Parser state
      */
     int numToken = 0;
-    Optional<Integer> checkpointToken = Optional.empty();
-
-    /*
-     * Used with rollbacks, check updateError
-     */
-    public Optional<? extends RuntimeException> biggestError = Optional.empty();
-    Optional<Integer> biggestChain = Optional.empty();
+    ArrayList<Checkpoint> checkpoints = new ArrayList<>();
 
     /*
      * Output
@@ -344,38 +365,58 @@ public class Parser {
         }
     }
 
+    Integer checkpointDepth() {
+        var checkpointStackDepth = this.checkpoints.size() - 1;
+        assert checkpointStackDepth >= 0 : "checkpoint depth is negative";
+
+        return checkpointStackDepth;
+    }
+
+    Optional biggestError() {
+        var biggestError = this
+            .checkpoints
+            .get(this.checkpointDepth())
+            .biggestError();
+
+        return biggestError;
+    }
+
     // NOTE: every checkpoint must end with commit
     void checkpoint() {
-        this.checkpointToken = Optional.of(this.numToken);
-        log.debug("checkpoint to " + this.checkpointToken);
+        var checkpoint = new Checkpoint(this.numToken, Optional.empty(), 0, 0);
+        this.checkpoints.add(checkpoint);
+
+        log.debug("checkpoints to " + checkpoint);
     }
 
     <T> T commit(T object) {
-        this.checkpointToken = Optional.empty();
+        this.checkpoints.remove(this.checkpointDepth());
+
         log.debug("[success] " + object);
 
         return object;
     }
 
-    <E extends RuntimeException> void updateError(E e, int checkpointToken) {
-        var currentLen = this.numToken - checkpointToken;
-
-        if (this.biggestChain.map(chain -> currentLen > chain).orElse(true)) {
-            this.biggestError = Optional.of(e);
-            this.biggestChain = Optional.of(currentLen);
-        }
+    void updateError(RuntimeException e, int checkpointToken) {
+        this.checkpoints.set(
+            this.checkpointDepth(),
+            this
+                .checkpoints
+                .get(this.checkpointDepth())
+                .updateError(e, checkpointToken, this.numToken));
     }
 
-    <E extends RuntimeException> void rollback(E e) {
+    void rollback(RuntimeException e) {
         log.debug(e);
 
-        var checkpointToken = this
-            .checkpointToken
-            .orElseThrow(() -> new RuntimeException("rollback with no checkpoint"));
-        this.updateError(e, checkpointToken);
+        var checkpoint = this
+            .checkpoints
+            .get(this.checkpointDepth())
+            .checkpoint();
+        this.updateError(e, checkpoint);
 
-        log.debug("rollback to " + this.checkpointToken);
-        this.numToken = checkpointToken;
+        log.debug(String.format("rollback to [%s]", checkpoint));
+        this.numToken = checkpoint;
     }
 
     void consumeSymbol(String symbol) {
