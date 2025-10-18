@@ -11,6 +11,8 @@ public record ST(ArrayList<ST.TopLevelStmt> stmts) {
     public enum BIN_OP {
         ADD,
         SUB,
+        MUL,
+        DIV,
     }
 
     public sealed interface TopLevelStmt extends Stmt

@@ -258,8 +258,8 @@ public class Parser {
         }
     }
 
-    ST.Expression parseArithExpr() {
-        log.debug("parse arith expr");
+    ST.Expression parseTerm() {
+        log.debug("parse term expr (* and /)");
         var a = this.parseFactor();
 
         ST.Expression binOp = a;
@@ -269,12 +269,41 @@ public class Parser {
         while (!close) {
             nextToken = this.nextPair();
             switch (nextToken) {
-                case Pair(var span, Symbol token) when token.isSym("+") -> {
+                case Pair(var span, Symbol token) when token.isSym("*") -> {
                     var b = this.parseFactor();
+                    binOp = new ST.BinOpExpr(ST.BIN_OP.MUL, binOp, b);
+                }
+                case Pair(var span, Symbol token) when token.isSym("/") -> {
+                    var b = this.parseFactor();
+                    binOp = new ST.BinOpExpr(ST.BIN_OP.DIV, binOp, b);
+                }
+                case Pair(var span, Token token) -> {
+                    this.backPair();
+                    return binOp;
+                }
+            }
+        }
+
+        return binOp;
+    }
+
+    ST.Expression parseArithExpr() {
+        log.debug("parse arith expr");
+        var a = this.parseTerm();
+
+        ST.Expression binOp = a;
+        Pair<Pair<Integer, Integer>, Token> nextToken;
+
+        boolean close = false;
+        while (!close) {
+            nextToken = this.nextPair();
+            switch (nextToken) {
+                case Pair(var span, Symbol token) when token.isSym("+") -> {
+                    var b = this.parseTerm();
                     binOp = new ST.BinOpExpr(ST.BIN_OP.ADD, binOp, b);
                 }
                 case Pair(var span, Symbol token) when token.isSym("-") -> {
-                    var b = this.parseFactor();
+                    var b = this.parseTerm();
                     binOp = new ST.BinOpExpr(ST.BIN_OP.SUB, binOp, b);
                 }
                 case Pair(var span, Token token) -> {

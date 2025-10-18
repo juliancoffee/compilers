@@ -186,10 +186,7 @@ func noop() -> Void {
 }
 """;
             code = """
-let x = square(square(2));
-func noop() -> Void {
-    x = 5.5;
-}
+let x = 1 + 2 * 3 + 4;
 """;
         }
 

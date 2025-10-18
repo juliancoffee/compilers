@@ -355,6 +355,265 @@ class SimpleParseTest {
 
         assertEquals(expectedTree, actualTree);
     }
+
+    @Test
+        void testMulPrecedenceOverAdd() {
+            var input = "let x = a + b * c;";
+            var actualTree = parseCode(input);
+
+            // Expected: a + (b * c)
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.ADD,
+                        new ST.IdentExpr("a"),
+                        new ST.BinOpExpr(
+                            ST.BIN_OP.MUL,
+                            new ST.IdentExpr("b"),
+                            new ST.IdentExpr("c")
+                        )
+                    )
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
+
+        @Test
+        void testDivPrecedenceOverSub() {
+            var input = "let x = a - b / c;";
+            var actualTree = parseCode(input);
+
+            // Expected: a - (b / c)
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.SUB,
+                        new ST.IdentExpr("a"),
+                        new ST.BinOpExpr(
+                            ST.BIN_OP.DIV,
+                            new ST.IdentExpr("b"),
+                            new ST.IdentExpr("c")
+                        )
+                    )
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
+
+        @Test
+        void testMulLeftAssociativity() {
+            var input = "let x = a * b * c;";
+            var actualTree = parseCode(input);
+
+            // Expected: (a * b) * c
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.MUL,
+                        new ST.BinOpExpr(
+                            ST.BIN_OP.MUL,
+                            new ST.IdentExpr("a"),
+                            new ST.IdentExpr("b")
+                        ),
+                        new ST.IdentExpr("c")
+                    )
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
+
+        @Test
+        void testDivLeftAssociativity() {
+            var input = "let x = a / b / c;";
+            var actualTree = parseCode(input);
+
+            // Expected: (a / b) / c
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.DIV,
+                        new ST.BinOpExpr(
+                            ST.BIN_OP.DIV,
+                            new ST.IdentExpr("a"),
+                            new ST.IdentExpr("b")
+                        ),
+                        new ST.IdentExpr("c")
+                    )
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
+
+        @Test
+        void testMixedMulDivLeftAssociativity() {
+            var input = "let x = a * b / c;";
+            var actualTree = parseCode(input);
+
+            // Expected: (a * b) / c
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.DIV,
+                        new ST.BinOpExpr(
+                            ST.BIN_OP.MUL,
+                            new ST.IdentExpr("a"),
+                            new ST.IdentExpr("b")
+                        ),
+                        new ST.IdentExpr("c")
+                    )
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
+
+        @Test
+        void testComplexPrecedenceWithIdentifiers() {
+            var input = "let x = a + b * c - d / e;";
+            var actualTree = parseCode(input);
+
+            // Expected: (a + (b * c)) - (d / e)
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.SUB,
+                        new ST.BinOpExpr(
+                            ST.BIN_OP.ADD,
+                            new ST.IdentExpr("a"),
+                            new ST.BinOpExpr(
+                                ST.BIN_OP.MUL,
+                                new ST.IdentExpr("b"),
+                                new ST.IdentExpr("c")
+                            )
+                        ),
+                        new ST.BinOpExpr(
+                            ST.BIN_OP.DIV,
+                            new ST.IdentExpr("d"),
+                            new ST.IdentExpr("e")
+                        )
+                    )
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
+
+        @Test
+        void testFunctionCallAsOperandForMul() {
+            var input = "let x = myFunc() * b;";
+            var actualTree = parseCode(input);
+
+            // Expected: (myFunc() * b)
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.MUL,
+                        new ST.FuncCallExpr("myFunc", new ArrayList<>()),
+                        new ST.IdentExpr("b")
+                    )
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
+
+    @Test
+        void testFunctionCallWithMultipleArgs() {
+            var input = "let x = myFunc(a, 5, b);";
+            var actualTree = parseCode(input);
+
+            // Expected: myFunc(a, 5, b)
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.FuncCallExpr("myFunc", new ArrayList<>(List.of(
+                        new ST.IdentExpr("a"),
+                        new ST.IntLiteralExpr(5),
+                        new ST.IdentExpr("b")
+                    )))
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
+
+        @Test
+        void testFunctionCallWithExpressionAsArg() {
+            var input = "let x = myFunc(a * 5);";
+            var actualTree = parseCode(input);
+
+            // Expected: myFunc(a * 5)
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.FuncCallExpr("myFunc", new ArrayList<>(List.of(
+                        new ST.BinOpExpr(
+                            ST.BIN_OP.MUL,
+                            new ST.IdentExpr("a"),
+                            new ST.IntLiteralExpr(5)
+                        )
+                    )))
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
+
+        @Test
+        void testFunctionCallWithComplexArgsAndOps() {
+            var input = "let x = a * myFunc(b + c, 10) / d;";
+            var actualTree = parseCode(input);
+
+            // Expected: (a * myFunc(b + c, 10)) / d
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.DIV,
+                        new ST.BinOpExpr(
+                            ST.BIN_OP.MUL,
+                            new ST.IdentExpr("a"),
+                            new ST.FuncCallExpr("myFunc", new ArrayList<>(List.of(
+                                new ST.BinOpExpr(
+                                    ST.BIN_OP.ADD,
+                                    new ST.IdentExpr("b"),
+                                    new ST.IdentExpr("c")
+                                ),
+                                new ST.IntLiteralExpr(10)
+                            )))
+                        ),
+                        new ST.IdentExpr("d")
+                    )
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
+
+        @Test
+        void testFunctionCallInsideAnotherFunctionCall() {
+            var input = "let x = funcOne(a, funcTwo(b / c));";
+            var actualTree = parseCode(input);
+
+            // Expected: funcOne(a, funcTwo(b / c))
+            var expectedTree = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("x",
+                    new ST.FuncCallExpr("funcOne", new ArrayList<>(List.of(
+                        new ST.IdentExpr("a"),
+                        new ST.FuncCallExpr("funcTwo", new ArrayList<>(List.of(
+                            new ST.BinOpExpr(
+                                ST.BIN_OP.DIV,
+                                new ST.IdentExpr("b"),
+                                new ST.IdentExpr("c")
+                            )
+                        )))
+                    )))
+                )
+            )));
+
+            assertEquals(expectedTree, actualTree);
+        }
 }
 
 @ExtendWith({SnapshotExtension.class})
