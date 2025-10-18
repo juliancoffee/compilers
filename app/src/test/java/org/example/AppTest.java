@@ -249,6 +249,112 @@ class SimpleParseTest {
 
         assertEquals(expectedTree, actualTree);
     }
+
+    @Test
+    void testFunctionCallNoArgs() {
+        var input = "let x = myFunc();";
+        var actualTree = parseCode(input);
+
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x",
+                new ST.FuncCallExpr("myFunc", new ArrayList<>())
+            )
+        )));
+
+        assertEquals(expectedTree, actualTree);
+    }
+
+    @Test
+    void testFunctionCallWithIntLiteralArg() {
+        var input = "let x = myFunc(5);";
+        var actualTree = parseCode(input);
+
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x",
+                new ST.FuncCallExpr("myFunc", new ArrayList<>(List.of(
+                    new ST.IntLiteralExpr(5)
+                )))
+            )
+        )));
+
+        assertEquals(expectedTree, actualTree);
+    }
+
+    @Test
+    void testFunctionCallWithIdentArg() {
+        var input = "let x = myFunc(y);";
+        var actualTree = parseCode(input);
+
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x",
+                new ST.FuncCallExpr("myFunc", new ArrayList<>(List.of(
+                    new ST.IdentExpr("y")
+                )))
+            )
+        )));
+
+        assertEquals(expectedTree, actualTree);
+    }
+
+    @Test
+    void testFunctionCallPrecedence() {
+        var input = "let x = 5 + myFunc();";
+        var actualTree = parseCode(input);
+
+        // Expected: (5 + myFunc())
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x",
+                new ST.BinOpExpr(
+                    ST.BIN_OP.ADD,
+                    new ST.IntLiteralExpr(5),
+                    new ST.FuncCallExpr("myFunc", new ArrayList<>())
+                )
+            )
+        )));
+
+        assertEquals(expectedTree, actualTree);
+    }
+
+    @Test
+    void testNestedFunctionCall() {
+        var input = "let x = funcOne(funcTwo());";
+        var actualTree = parseCode(input);
+
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x",
+                new ST.FuncCallExpr("funcOne", new ArrayList<>(List.of(
+                    new ST.FuncCallExpr("funcTwo", new ArrayList<>())
+                )))
+            )
+        )));
+
+        assertEquals(expectedTree, actualTree);
+    }
+
+    @Test
+    void testComplexFunctionCallAndOps() {
+        var input = "let x = 5 - funcOne() + funcTwo(y);";
+        var actualTree = parseCode(input);
+
+        // Expected: (5 - funcOne()) + funcTwo(y)
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x",
+                new ST.BinOpExpr(
+                    ST.BIN_OP.ADD,
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.SUB,
+                        new ST.IntLiteralExpr(5),
+                        new ST.FuncCallExpr("funcOne", new ArrayList<>())
+                    ),
+                    new ST.FuncCallExpr("funcTwo", new ArrayList<>(List.of(
+                        new ST.IdentExpr("y")
+                    )))
+                )
+            )
+        )));
+
+        assertEquals(expectedTree, actualTree);
+    }
 }
 
 @ExtendWith({SnapshotExtension.class})

@@ -186,7 +186,10 @@ func noop() -> Void {
 }
 """;
             code = """
-let x = 5 - 7 + 2 - 3;
+let x = square(square(2));
+func noop() -> Void {
+    x = 5.5;
+}
 """;
         }
 
@@ -209,7 +212,11 @@ let x = 5 - 7 + 2 - 3;
             parser.parse();
         } catch (RuntimeException e) {
             System.err.println("\nParser has failed!");
-            System.err.println(e);
+            if (parser.biggestError.isPresent()) {
+                System.err.println(parser.biggestError.get());
+            } else {
+                System.err.println(e);
+            }
         }
 
         var gson = new GsonBuilder().setPrettyPrinting().create();

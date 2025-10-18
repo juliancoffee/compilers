@@ -20,13 +20,17 @@ public record ST(ArrayList<ST.TopLevelStmt> stmts) {
             permits TopLevelStmt, PrintStmt, AssignStmt, FuncCallStmt {}
 
     public sealed interface Expression
-            permits LiteralExpr, IdentExpr, BinOpExpr {}
+            permits LiteralExpr, IdentExpr, FuncCallExpr, BinOpExpr {}
 
     public sealed interface LiteralExpr extends Expression
             permits IntLiteralExpr {}
 
     // IdentExpr = Ident
     public record IdentExpr(String identExpr)
+        implements Expression {}
+
+    // FuncCallExpr = Ident ArgsFragment
+    public record FuncCallExpr(String callIdent, ArrayList<Expression> args)
         implements Expression {}
 
     // IntLiteralExpr = IntLiteral

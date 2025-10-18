@@ -16,6 +16,12 @@ public class Parser {
     Optional<Integer> checkpointToken = Optional.empty();
 
     /*
+     * Used with rollbacks, check updateError
+     */
+    public Optional<? extends RuntimeException> biggestError = Optional.empty();
+    Optional<Integer> biggestChain = Optional.empty();
+
+    /*
      * Output
      */
     public ST parseTree = new ST(new ArrayList<>());
@@ -59,7 +65,7 @@ public class Parser {
                     if (allow_comma) {
                         allow_comma = false;
                     } else {
-                        throw fail(span, token);
+                        throw fail(span, token, "',' can only follow argument");
                     }
                 }
                 case Pair(var span, Token token) -> {
@@ -128,7 +134,12 @@ public class Parser {
                     switch (token.keyword()) {
                         case "let" -> stmts.add(this.parseLetStmt());
                         case "print" -> stmts.add(this.parsePrintStmt());
-                        default -> throw fail(span, token);
+                        default -> throw fail(
+                            span,
+                            token,
+                            "only `let` and `print` keywords " +
+                            "are allowed at the start"
+                        );
                     }
                 }
                 case Pair(var span, Ident ident) -> {
@@ -136,24 +147,26 @@ public class Parser {
                     this.checkpoint();
 
                     try {
-                        stmts.add(this.parseAssignStmt(ident.ident()));
-                        // NOTE: don't forget to commit
-                        this.commit();
+                        var stmt = this.parseAssignStmt(ident.ident());
+                        stmts.add(this.commit(stmt));
+
                         continue;
                     } catch (RuntimeException e) {
-                        this.rollback();
+                        this.rollback(e);
                     }
 
                     // NOTE: last one without rollbacks
-                    stmts.add(this.parseFuncCallStmt(ident.ident()));
-                    this.commit();
+                    var stmt = this.parseFuncCallStmt(ident.ident());
+                    stmts.add(this.commit(stmt));
                 }
                 // if got `}`, collect and return
                 case Pair(var span, Symbol token)
                     when token.equals(new Symbol("}")) -> {
                     return stmts;
                 }
-                case Pair(var span, Token token) -> throw fail(span, token);
+                case Pair(var span, Token token) -> throw fail(
+                    span, token, "expected '}'"
+                );
             }
             log.debug("parsed statement " + stmts.size());
         }
@@ -186,25 +199,47 @@ public class Parser {
         return new ST.FuncStmt(name, stmts);
     }
 
+    ST.Expression parseFuncCallExpr(String ident) {
+        log.debug("parse fun call");
+        var exprs = parseArgsFragment();
+        return new ST.FuncCallExpr(ident, exprs);
+    }
+
+    ST.Expression parseIdentExpr(String ident) {
+        log.debug("parse ident");
+        return new ST.IdentExpr(ident);
+    }
+
     ST.Expression parseFactor() {
         log.debug("parse factor");
 
         var nextToken = this.nextPair();
         switch (nextToken) {
-            case Pair(var span, Ident token) -> {
-                return new ST.IdentExpr(token.ident());
+            case Pair(var span, Ident(String ident)) -> {
+                this.checkpoint();
+                try {
+                    var expr = this.commit(this.parseFuncCallExpr(ident));
+                    return expr;
+                } catch (RuntimeException e) {
+                    this.rollback(e);
+                }
+
+                return this.commit(this.parseIdentExpr(ident));
             }
             case Pair(var span, IntLiteral token) -> {
                 var val = Integer.parseInt(token.intLiteral());
                 return new ST.IntLiteralExpr(val);
             }
             // not ident, not an int, fail
-            case Pair(var span, Token token) -> throw fail(span, token);
+            case Pair(var span, Token token) -> throw fail(
+                span, token, "expected IntLiteral or Ident"
+            );
         }
     }
 
     ST.Expression parseArithExpr() {
-        var a = parseFactor();
+        log.debug("parse arith expr");
+        var a = this.parseFactor();
 
         ST.Expression binOp = a;
         Pair<Pair<Integer, Integer>, Token> nextToken;
@@ -214,11 +249,11 @@ public class Parser {
             nextToken = this.nextPair();
             switch (nextToken) {
                 case Pair(var span, Symbol token) when token.isSym("+") -> {
-                    var b = parseFactor();
+                    var b = this.parseFactor();
                     binOp = new ST.BinOpExpr(ST.BIN_OP.ADD, binOp, b);
                 }
                 case Pair(var span, Symbol token) when token.isSym("-") -> {
-                    var b = parseFactor();
+                    var b = this.parseFactor();
                     binOp = new ST.BinOpExpr(ST.BIN_OP.SUB, binOp, b);
                 }
                 case Pair(var span, Token token) -> {
@@ -234,7 +269,7 @@ public class Parser {
     ST.Expression parseExpression() {
         log.debug("parse expr");
 
-        return parseArithExpr();
+        return this.parseArithExpr();
     }
 
     ST.LetStmt parseLetStmt() {
@@ -292,11 +327,6 @@ public class Parser {
         this.parseTopStatementList();
     }
 
-    RuntimeException fail(Pair<Integer, Integer> span, Token token) {
-        throw new RuntimeException(
-            "at " + formatSpan(span) + " unexpected token: " + token
-        );
-    }
 
     void backPair() {
         log.debug("[back again]");
@@ -320,15 +350,32 @@ public class Parser {
         log.debug("checkpoint to " + this.checkpointToken);
     }
 
-    void commit() {
+    <T> T commit(T object) {
         this.checkpointToken = Optional.empty();
+        log.debug("[success] " + object);
+
+        return object;
     }
 
-    void rollback() {
-        log.debug("rollback to " + this.checkpointToken);
-        this.numToken = this
+    <E extends RuntimeException> void updateError(E e, int checkpointToken) {
+        var currentLen = this.numToken - checkpointToken;
+
+        if (this.biggestChain.map(chain -> currentLen > chain).orElse(true)) {
+            this.biggestError = Optional.of(e);
+            this.biggestChain = Optional.of(currentLen);
+        }
+    }
+
+    <E extends RuntimeException> void rollback(E e) {
+        log.debug(e);
+
+        var checkpointToken = this
             .checkpointToken
             .orElseThrow(() -> new RuntimeException("rollback with no checkpoint"));
+        this.updateError(e, checkpointToken);
+
+        log.debug("rollback to " + this.checkpointToken);
+        this.numToken = checkpointToken;
     }
 
     void consumeSymbol(String symbol) {
@@ -342,14 +389,7 @@ public class Parser {
         if (token instanceof Ident(String ident)) {
             return ident;
         } else {
-            throw new RuntimeException(
-                MessageFormat.format("""
-
-> At {0} unexpected token {1}.
-> Hint: expected Ident
-""",
-                    formatSpan(span), token)
-            );
+            throw fail(span, token, "expected Ident");
         }
     }
 
@@ -358,15 +398,22 @@ public class Parser {
         var span = next.first();
         var token = next.second();
         if (!token.equals(expected)) {
-            throw new RuntimeException(
-                MessageFormat.format("""
-
-> At {0} unexpected token {1}.
-> Hint: expected {2}
-""",
-                    formatSpan(span), token, expected)
-            );
+            throw fail(span, token, "expected " + expected);
         }
+    }
+
+    RuntimeException fail(Pair<Integer, Integer> span, Token token) {
+        return fail(span, token, "re-read the source code at that location");
+    }
+
+    RuntimeException fail(Pair<Integer, Integer> span, Token token, String hint) {
+        throw new RuntimeException(
+            MessageFormat.format("""
+> At {0} unexpected token: {1}.
+> Hint: {2}
+""",
+            formatSpan(span), token, hint)
+        );
     }
 
     String formatSpan(Pair<Integer, Integer> span) {
