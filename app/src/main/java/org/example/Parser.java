@@ -8,53 +8,6 @@ import java.text.MessageFormat;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-sealed interface TopLevelStmt extends Stmt
-permits
-    LetStmt, FuncStmt {}
-
-sealed interface Expression
-permits
-    LiteralExpr, IdentExpr {}
-
-sealed interface LiteralExpr extends Expression
-permits
-    IntLiteralExpr {}
-
-sealed interface Stmt
-permits
-    TopLevelStmt, PrintStmt, AssignStmt, FuncCallStmt {}
-
-// Program = { LetStmt | FuncStmt }
-record ParseTree(ArrayList<TopLevelStmt> stmts) {}
-
-// LetStmt = 'let' Ident '=' Expression ';'
-record LetStmt(String letName, Expression expr) implements TopLevelStmt {}
-
-// IntLiteralExpr = IntLiteral
-record IntLiteralExpr(Integer intLiteral) implements LiteralExpr {};
-
-// IdentExpr = IntLiteral
-record IdentExpr(String identExpr) implements Expression {};
-
-// FuncStmt = 'func' Ident '(' ')' Block
-// Block = { Stmt }
-// TODO: args
-record FuncStmt(String funcName, ArrayList<Stmt> block) implements TopLevelStmt {}
-
-// PrintStmt = 'print' ArgsFragment ';'
-// ArgsFragment = '(' [ Expression { ',' Expression } [ ',' ] ] ')'
-//
-// Simply put, allows zero or more expressions, separated by comma.
-// Comma optionally may be trailing.
-record PrintStmt(ArrayList<Expression> printExprs) implements Stmt {}
-
-// AssignStmt = Ident '=' Expression ';'
-record AssignStmt(String assignIdent, Expression expr) implements Stmt {}
-
-// FuncCallStmt = FuncCall ';'
-// FuncCall = Ident ArgsFragment
-record FuncCallStmt(String callIdent, ArrayList<Expression> args) implements Stmt {}
-
 public class Parser {
     /*
      * Parser state
@@ -65,7 +18,7 @@ public class Parser {
     /*
      * Output
      */
-    public ParseTree parseTree = new ParseTree(new ArrayList<>());
+    public ST parseTree = new ST(new ArrayList<>());
 
     /*
      * Parser data
@@ -83,11 +36,11 @@ public class Parser {
     // Parses arguments fragment for function call or print.
     //
     // Will return zero or more arguments
-    ArrayList<Expression> parseArgsFragment() {
+    ArrayList<ST.Expression> parseArgsFragment() {
         // expect `(`
         this.consumeSymbol("(");
 
-        var exprs = new ArrayList<Expression>();
+        var exprs = new ArrayList<ST.Expression>();
 
         boolean close = false;
         Pair<Pair<Integer, Integer>, Token> nextToken;
@@ -110,7 +63,7 @@ public class Parser {
                     }
                 }
                 case Pair(var span, Token token) -> {
-                    // Back and There again
+                    // There and Back Again
                     this.backPair();
                     exprs.add(this.parseExpression());
                     allow_comma = true;
@@ -122,7 +75,7 @@ public class Parser {
         return exprs;
     }
 
-    PrintStmt parsePrintStmt() {
+    ST.PrintStmt parsePrintStmt() {
         log.debug("parse print");
 
         // parse arguments
@@ -131,10 +84,10 @@ public class Parser {
         // expect `;`
         this.consumeSymbol(";");
 
-        return new PrintStmt(args);
+        return new ST.PrintStmt(args);
     }
 
-    AssignStmt parseAssignStmt(String ident) {
+    ST.AssignStmt parseAssignStmt(String ident) {
         log.debug("parse assign");
 
         // expect `=`
@@ -145,10 +98,10 @@ public class Parser {
 
         // expect `;`
         this.consumeSymbol(";");
-        return new AssignStmt(ident, expr);
+        return new ST.AssignStmt(ident, expr);
     }
 
-    FuncCallStmt parseFuncCallStmt(String ident) {
+    ST.FuncCallStmt parseFuncCallStmt(String ident) {
         log.debug("parse func call");
 
         // parse args
@@ -157,16 +110,16 @@ public class Parser {
         // expect `;`
         this.consumeSymbol(";");
 
-        return new FuncCallStmt(ident, exprs);
+        return new ST.FuncCallStmt(ident, exprs);
     }
 
-    ArrayList<Stmt> parseBlock() {
+    ArrayList<ST.Stmt> parseBlock() {
         log.debug("parse block");
 
         // expect `{` to open block
         this.consumeSymbol("{");
 
-        var stmts = new ArrayList<Stmt>();
+        var stmts = new ArrayList<ST.Stmt>();
         Pair<Pair<Integer, Integer>, Token> nextToken;
         while (true) {
             nextToken = this.nextPair();
@@ -206,7 +159,7 @@ public class Parser {
         }
     }
 
-    FuncStmt parseFuncStmt() {
+    ST.FuncStmt parseFuncStmt() {
         log.debug("parse func stmt");
 
         // expect ident
@@ -230,28 +183,61 @@ public class Parser {
 
         var stmts = this.parseBlock();
 
-        return new FuncStmt(name, stmts);
+        return new ST.FuncStmt(name, stmts);
     }
 
-    Expression parseExpression() {
-        log.debug("parse expr");
+    ST.Expression parseFactor() {
+        log.debug("parse factor");
 
-        Pair<Pair<Integer, Integer>, Token> nextToken;
-        nextToken = this.nextPair();
+        var nextToken = this.nextPair();
         switch (nextToken) {
             case Pair(var span, Ident token) -> {
-                return new IdentExpr(token.ident());
+                return new ST.IdentExpr(token.ident());
             }
             case Pair(var span, IntLiteral token) -> {
                 var val = Integer.parseInt(token.intLiteral());
-                return new IntLiteralExpr(val);
+                return new ST.IntLiteralExpr(val);
             }
             // not ident, not an int, fail
             case Pair(var span, Token token) -> throw fail(span, token);
         }
     }
 
-    LetStmt parseLetStmt() {
+    ST.Expression parseArithExpr() {
+        var a = parseFactor();
+
+        ST.Expression binOp = a;
+        Pair<Pair<Integer, Integer>, Token> nextToken;
+
+        boolean close = false;
+        while (!close) {
+            nextToken = this.nextPair();
+            switch (nextToken) {
+                case Pair(var span, Symbol token) when token.isSym("+") -> {
+                    var b = parseFactor();
+                    binOp = new ST.BinOpExpr(ST.BIN_OP.ADD, binOp, b);
+                }
+                case Pair(var span, Symbol token) when token.isSym("-") -> {
+                    var b = parseFactor();
+                    binOp = new ST.BinOpExpr(ST.BIN_OP.SUB, binOp, b);
+                }
+                case Pair(var span, Token token) -> {
+                    this.backPair();
+                    return binOp;
+                }
+            }
+        }
+
+        return binOp;
+    }
+
+    ST.Expression parseExpression() {
+        log.debug("parse expr");
+
+        return parseArithExpr();
+    }
+
+    ST.LetStmt parseLetStmt() {
         log.debug("parse let stmt");
 
         // expect ident
@@ -270,10 +256,10 @@ public class Parser {
         // let must end with `;`
         this.consumeSymbol(";");
 
-        return new LetStmt(name, expr);
+        return new ST.LetStmt(name, expr);
     }
 
-    TopLevelStmt parseTopStmt() {
+    ST.TopLevelStmt parseTopStmt() {
         log.debug("parse top stmt");
 
         var nextToken = this.nextPair();
@@ -313,6 +299,7 @@ public class Parser {
     }
 
     void backPair() {
+        log.debug("[back again]");
         this.numToken -= 1;
     }
 

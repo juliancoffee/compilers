@@ -7,6 +7,10 @@ public sealed interface Token extends Comparable<Token> {
     default int compareTo(Token other) {
         throw new UnsupportedOperationException();
     }
+
+    default boolean isSym(String other) {
+        return this.equals(new Symbol(other));
+    }
 };
 
 record Keyword(String keyword) implements Token {

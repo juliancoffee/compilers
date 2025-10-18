@@ -18,8 +18,10 @@ import com.google.gson.GsonBuilder;
 import org.example.Lexer;
 import org.example.Pair;
 import org.example.SpanUtils;
+import org.example.ST;
+import org.example.Parser;
 
-class SimpleTest {
+class SimpleLexTest {
     private static Pair<Integer, Integer> span(int from, int to) {
         return new Pair<>(from, to);
     }
@@ -137,6 +139,115 @@ class SimpleTest {
         String expectedJson = gson.toJson(expectedTokens);
 
         assertEquals(expectedJson, actualJson);
+    }
+}
+
+
+class SimpleParseTest {
+    private ST parseCode(String code) {
+        var lexer = new Lexer(code);
+        lexer.lex();
+
+        var parser = new Parser(lexer.tokenTable, lexer.lineIndex);
+        parser.parse();
+
+        return parser.parseTree;
+    }
+
+    // --- Tests ---
+    @Test
+    void testSimpleVariableDeclaration() {
+        var input = "let x = 5;";
+        var actualTree = parseCode(input);
+
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x", new ST.IntLiteralExpr(5))
+        )));
+
+        assertEquals(expectedTree, actualTree);
+    }
+
+    @Test
+    void testSimpleAddition() {
+        var input = "let x = 5 + 2;";
+        var actualTree = parseCode(input);
+
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x",
+                new ST.BinOpExpr(
+                    ST.BIN_OP.ADD,
+                    new ST.IntLiteralExpr(5),
+                    new ST.IntLiteralExpr(2)
+                )
+            )
+        )));
+
+        assertEquals(expectedTree, actualTree);
+    }
+
+    @Test
+    void testSimpleSubtraction() {
+        var input = "let x = 5 - 2;";
+        var actualTree = parseCode(input);
+
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x",
+                new ST.BinOpExpr(
+                    ST.BIN_OP.SUB,
+                    new ST.IntLiteralExpr(5),
+                    new ST.IntLiteralExpr(2)
+                )
+            )
+        )));
+
+        assertEquals(expectedTree, actualTree);
+    }
+
+    @Test
+    void testLeftAssociativity() {
+        var input = "let x = 5 - 2 + 3;";
+        var actualTree = parseCode(input);
+
+        // Expected: ((5 - 2) + 3)
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x",
+                new ST.BinOpExpr(
+                    ST.BIN_OP.ADD,
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.SUB,
+                        new ST.IntLiteralExpr(5),
+                        new ST.IntLiteralExpr(2)
+                    ),
+                    new ST.IntLiteralExpr(3)
+                )
+            )
+        )));
+
+        assertEquals(expectedTree, actualTree);
+    }
+
+    @Test
+    void testComplexLeftAssociativity() {
+        var input = "let x = 5 - 7 + 2 - 3;";
+        var actualTree = parseCode(input);
+
+        // Expected: (((5 - 7) + 2) - 3)
+        var expectedTree = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x",
+                new ST.BinOpExpr(ST.BIN_OP.SUB,
+                    new ST.BinOpExpr(ST.BIN_OP.ADD,
+                        new ST.BinOpExpr(ST.BIN_OP.SUB,
+                            new ST.IntLiteralExpr(5),
+                            new ST.IntLiteralExpr(7)
+                        ),
+                        new ST.IntLiteralExpr(2)
+                    ),
+                    new ST.IntLiteralExpr(3)
+                )
+            )
+        )));
+
+        assertEquals(expectedTree, actualTree);
     }
 }
 

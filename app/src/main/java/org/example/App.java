@@ -176,7 +176,7 @@ class App {
         } else {
             // Default code
             code = """
-let y = 5;
+let y = 5 + 6;
 func noop() -> Void {
     let x = 5;
     x = 6;
@@ -184,6 +184,9 @@ func noop() -> Void {
     printSum(x, y);
     print(x, y);
 }
+""";
+            code = """
+let x = 5 - 7 + 2 - 3;
 """;
         }
 
