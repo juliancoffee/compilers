@@ -64,6 +64,11 @@ test {
     }
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-Xlint:unchecked'
+    options.deprecation = true
+}
+
 // Apply a specific Java toolchain to ease working on different environments.
 java {
     toolchain {

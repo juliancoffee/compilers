@@ -262,7 +262,7 @@ public class Lexer {
     /*
      * Output
      */
-    public ArrayList<Integer> lineIndex = new ArrayList(Set.of(0));
+    public ArrayList<Integer> lineIndex = new ArrayList<>(Set.of(0));
     public TreeMap<Pair<Integer, Integer>, Token> tokenTable = new TreeMap<>();
 
     /*
