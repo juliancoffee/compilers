@@ -146,6 +146,8 @@ public record IR(
             // --- Binary Arithmetic Operators ---
             Map.entry("+", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), INT),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), INT),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), STRING)
             )))),
@@ -166,6 +168,9 @@ public record IR(
 
             // Using "**" for POW
             Map.entry("**", new Operator(new ArrayList<>(List.of(
+                new OpSpec(new ArrayList<>(List.of(INT, INT)), FLOAT),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), FLOAT),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), FLOAT)
             )))),
 
@@ -180,18 +185,22 @@ public record IR(
 
             // --- Binary Relational Operators ---
             Map.entry("<", new Operator(new ArrayList<>(List.of(
+                new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
             )))),
 
             Map.entry("<=", new Operator(new ArrayList<>(List.of(
+                new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
             )))),
 
             Map.entry(">", new Operator(new ArrayList<>(List.of(
+                new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
             )))),
 
             Map.entry(">=", new Operator(new ArrayList<>(List.of(
+                new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
             )))),

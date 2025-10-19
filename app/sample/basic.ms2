@@ -45,7 +45,7 @@ func main() {
     // Цикл while
     var counter = 0;
     while counter < 3 {
-        print("Counter = " + counter);
+        print("Counter = ", counter);
         counter = counter + 1;
     }
 

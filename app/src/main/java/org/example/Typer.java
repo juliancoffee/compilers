@@ -96,36 +96,26 @@ class Typer {
         }
 
         for (var alt : operator.alternatives()) {
-            // FIXME: can't do typecasts
             if (alt.argTypes().equals(types)) {
                 return alt.returnType();
             }
-            // неявне приведення
-            // Перевіряємо, чи має поточна альтернатива тип [FLOAT, FLOAT]
-            // і чи вхідні типи [INT, INT] або [INT, FLOAT] / [FLOAT, INT]
 
-            if (alt.argTypes().size() == 2) {
-                IR.TY req1 = alt.argTypes().get(0);
-                IR.TY req2 = alt.argTypes().get(1);
-                IR.TY got1 = types.get(0);
-                IR.TY got2 = types.get(1);
-
-                // Перевірка 1: Обидва INT, потрібні FLOAT
-                if (req1 == IR.TY.FLOAT && req2 == IR.TY.FLOAT && got1 == IR.TY.INT && got2 == IR.TY.INT) {
-                    // Тут потрібно *фактично* вставити операцію приведення INT -> FLOAT в IR
-                    // (див. розділ "Як змінити IR" нижче).
-                    // Але для перевірки типів ми просто повертаємо тип:
-                    return alt.returnType();
-                }
-
-                // Перевірка 2: Змішані типи (наприклад, [INT, FLOAT] -> [FLOAT, FLOAT])
-                // Якщо оператор приймає [FLOAT, FLOAT] і ми отримали [INT, FLOAT] (або навпаки),
-                // ми можемо неявно привести INT до FLOAT.
-                if ((req1 == IR.TY.FLOAT && got1 == IR.TY.INT) || (req2 == IR.TY.FLOAT && got2 == IR.TY.INT)) {
-                    // Тут також потрібно вставити операцію приведення в IR.
-                    return alt.returnType();
-                }
-            }
+            // if (alt.argTypes().size() == 2) {
+            //     IR.TY req1 = alt.argTypes().get(0);
+            //     IR.TY req2 = alt.argTypes().get(1);
+            //     IR.TY got1 = types.get(0);
+            //     IR.TY got2 = types.get(1);
+            //
+            //     // Перевірка 1: Обидва INT, потрібні FLOAT
+            //     if (req1 == IR.TY.FLOAT && req2 == IR.TY.FLOAT && got1 == IR.TY.INT && got2 == IR.TY.INT) {
+            //         return alt.returnType();
+            //     }
+            //
+            //     // Перевірка 2: Змішані типи (наприклад, [INT, FLOAT] -> [FLOAT, FLOAT])
+            //     if ((req1 == IR.TY.FLOAT && got1 == IR.TY.INT) || (req2 == IR.TY.FLOAT && got2 == IR.TY.INT)) {
+            //         return alt.returnType();
+            //     }
+            // }
         }
         throw fail(
             span,

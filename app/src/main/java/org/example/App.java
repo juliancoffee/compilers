@@ -298,9 +298,9 @@ func main() {
         try {
             typer.typecheck();
         } catch (RuntimeException e) {
-            System.err.println(gson.toJson(
-                IR.nullifyParentScopes(typer.ir.scope()))
-            );
+            // System.err.println(gson.toJson(
+            //     IR.nullifyParentScopes(typer.ir.scope()))
+            // );
             throw e;
         }
         System.out.println(gson.toJson(
