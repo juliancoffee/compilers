@@ -1,6 +1,7 @@
 package org.example;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.text.MessageFormat;
 
@@ -44,7 +45,7 @@ public class Parser {
     /*
      * Output
      */
-    public ST parseTree = new ST(new ArrayList<>());
+    public ST parseTree = new ST(new ArrayList<>(), new ArrayList<>());
 
     /*
      * Parser data
@@ -194,7 +195,7 @@ public class Parser {
         var cond = this.parseExpression();
         var thenBlock = this.parseBlock();
 
-        Optional<ArrayList<ST.Stmt>> elseBlock = Optional.empty();
+        Optional<ST.Block> elseBlock = Optional.empty();
 
         var next = this.nextPair();
         switch (next) {
@@ -300,27 +301,37 @@ public class Parser {
         }
     }
 
-    ArrayList<ST.Stmt> parseBlock() {
+    ST.Block parseBlock() {
         log.debug("parse block");
 
         // expect `{` to open block
         this.consumeSymbol("{");
 
-        var stmts = new ArrayList<ST.Stmt>();
+        var stmts = new ST.Block(new ArrayList<ST.Stmt>(), new ArrayList<>());
         Pair<Pair<Integer, Integer>, Token> nextToken;
+
+        BiConsumer<ST.Stmt, Pair<Integer, Integer>> register = (
+            var stmt,
+            var startSpan
+        ) -> {
+            var endSpan = this.lastSpan();
+
+            stmts.add(stmt, startSpan, endSpan);
+        };
+
         while (true) {
             nextToken = this.nextPair();
             switch (nextToken) {
                 case Pair(var span, Keyword token) -> {
                     switch (token.keyword()) {
-                        case "let" -> stmts.add(this.parseLetStmt());
-                        case "var" -> stmts.add(this.parseVarStmt());
-                        case "print" -> stmts.add(this.parsePrintStmt());
-                        case "return" -> stmts.add(this.parseReturnStmt());
-                        case "for" -> stmts.add(this.parseForStmt());
-                        case "while" -> stmts.add(this.parseWhileStmt());
-                        case "if" -> stmts.add(this.parseIfStmt());
-                        case "switch" -> stmts.add(this.parseSwitchStmt());
+                        case "let" -> register.accept(this.parseLetStmt(), span);
+                        case "var" -> register.accept(this.parseVarStmt(), span);
+                        case "print" -> register.accept(this.parsePrintStmt(), span);
+                        case "return" -> register.accept(this.parseReturnStmt(), span);
+                        case "for" -> register.accept(this.parseForStmt(), span);
+                        case "while" -> register.accept(this.parseWhileStmt(), span);
+                        case "if" -> register.accept(this.parseIfStmt(), span);
+                        case "switch" -> register.accept(this.parseSwitchStmt(), span);
                         default -> {
                             var keywords = Set.of(
                                 "let", "var", "print", "return", "while", "if", "switch"
@@ -339,7 +350,7 @@ public class Parser {
 
                     try {
                         var stmt = this.parseAssignStmt(ident.ident());
-                        stmts.add(this.commit(stmt));
+                        register.accept(this.commit(stmt), span);
 
                         continue;
                     } catch (RuntimeException e) {
@@ -348,7 +359,7 @@ public class Parser {
 
                     // NOTE: last one without rollbacks
                     var stmt = this.parseFuncCallStmt(ident.ident());
-                    stmts.add(this.commit(stmt));
+                    register.accept(this.commit(stmt), span);
                 }
                 // if got `}`, collect and return
                 case Pair(var span, Symbol token)
@@ -359,7 +370,7 @@ public class Parser {
                     span, token, "expected '}'"
                 );
             }
-            log.debug("parsed statement " + stmts.size());
+            log.debug("parsed statement " + stmts.stmts().size());
         }
     }
 
@@ -766,7 +777,11 @@ public class Parser {
         log.debug("parse top stmt's list");
 
         while (this.numToken < tokenListLen) {
-            this.parseTree.stmts().add(this.parseTopStmt());
+            var span = this.lastSpan();
+            var stmt = this.parseTopStmt();
+            var endSpan = this.lastSpan();
+
+            this.parseTree.add(stmt, span, endSpan);
         }
     }
 
@@ -780,6 +795,17 @@ public class Parser {
     void backPair() {
         log.debug("[back again]");
         this.numToken -= 1;
+    }
+
+    Pair<Integer, Integer> lastSpan() {
+        int index;
+        if (this.numToken == 0) {
+            index = 0;
+        } else {
+            index = this.numToken - 1;
+        }
+        var token = _tokenList.get(index);
+        return token.first();
     }
 
     Pair<Pair<Integer, Integer>, Token> nextPair() {

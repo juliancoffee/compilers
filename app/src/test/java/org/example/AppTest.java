@@ -157,7 +157,10 @@ class SimpleParseTest {
         var parser = new Parser(lexer.tokenTable, lexer.lineIndex);
         parser.parse();
 
-        return parser.parseTree;
+        var tree = parser.parseTree;
+        tree.clearAllSpans();
+
+        return tree;
     }
 
     // --- Tests ---
@@ -670,7 +673,10 @@ class ExtendedParseTest {
         lexer.lex();
         var parser = new Parser(lexer.tokenTable, lexer.lineIndex);
         parser.parse();
-        return parser.parseTree;
+        var tree = parser.parseTree;
+        tree.clearAllSpans();
+
+        return tree;
     }
 
     @Test
@@ -778,13 +784,13 @@ class ExtendedParseTest {
                 "main",
                 new ArrayList<>(),
                 Optional.empty(),
-                new ArrayList<>(List.of(
+                new ST.Block(new ArrayList<>(List.of(
                     new ST.WhileStmt(
                         new ST.BinOpExpr(ST.BIN_OP.LT,
                             new ST.IdentExpr("i"),
                             new ST.IntLiteralExpr(10)
                         ),
-                        new ArrayList<>(List.of(
+                        new ST.Block(new ArrayList<>(List.of(
                             new ST.LetStmt("i", Optional.empty(),
                                 new ST.BinOpExpr(
                                     ST.BIN_OP.ADD,
@@ -792,9 +798,9 @@ class ExtendedParseTest {
                                     new ST.IntLiteralExpr(1)
                                 )
                             )
-                        ))
+                        )))
                     )
-                ))
+                )))
             )
         )));
 
@@ -812,20 +818,20 @@ class ExtendedParseTest {
                 "main",
                 new ArrayList<>(),
                 Optional.empty(),
-                new ArrayList<>(List.of(
+                new ST.Block(new ArrayList<>(List.of(
                     new ST.IfStmt(
                         new ST.BinOpExpr(ST.BIN_OP.LT,
                             new ST.IdentExpr("a"),
                             new ST.IdentExpr("b")
                         ),
-                        new ArrayList<>(List.of(
+                        new ST.Block(new ArrayList<>(List.of(
                             new ST.LetStmt("x", Optional.empty(), new ST.IntLiteralExpr(1))
-                        )),
-                        Optional.of(new ArrayList<>(List.of(
+                        ))),
+                        Optional.of(new ST.Block(new ArrayList<>(List.of(
                             new ST.LetStmt("x", Optional.empty(), new ST.IntLiteralExpr(2))
-                        )))
+                        ))))
                     )
-                ))
+                )))
             )
         )));
 
@@ -851,19 +857,19 @@ class ExtendedParseTest {
                     new ST.IntLiteralExpr(1),
                     new ST.IntLiteralExpr(2)
                 ))),
-                new ArrayList<>(List.of(
+                new ST.Block(new ArrayList<>(List.of(
                     new ST.LetStmt("x", Optional.empty(), new ST.StrLiteralExpr("low"))
-                ))
+                )))
             ),
             new ST.ValueCase(
                 new ST.ConstComp(new ST.IntLiteralExpr(3)),
-                new ArrayList<>(List.of(
+                new ST.Block(new ArrayList<>(List.of(
                         new ST.LetStmt("x", Optional.empty(), new ST.StrLiteralExpr("mid"))
-                ))
+                )))
             ),
-            new ST.DefaultCase(new ArrayList<>(List.of(
+            new ST.DefaultCase(new ST.Block(new ArrayList<>(List.of(
                 new ST.LetStmt("x", Optional.empty(), new ST.StrLiteralExpr("high"))
-            )))
+            ))))
         ));
 
         var expected = new ST(new ArrayList<>(List.of(
@@ -871,9 +877,9 @@ class ExtendedParseTest {
                 "main",
                 new ArrayList<>(),
                 Optional.empty(),
-                new ArrayList<>(List.of(
+                new ST.Block(new ArrayList<>(List.of(
                     new ST.SwitchStmt(new ST.IdentExpr("val"), cases)
-                ))
+                )))
             )
         )));
         assertEquals(expected, actual);
