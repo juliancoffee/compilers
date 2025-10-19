@@ -265,7 +265,7 @@ func main() {
 """;
             code = """
 let a = 5;
-func addA(b: Int) -> Int {
+func addA(b: Int) -> String {
     return a + b;
 }
 """;
@@ -303,7 +303,7 @@ func addA(b: Int) -> Int {
             .create();
         // System.out.println(gson.toJson(parser.parseTree));
 
-        var typer = new Typer(parser.parseTree);
+        var typer = new Typer(parser.parseTree, lexer.lineIndex);
         try {
             typer.typecheck();
         } catch (RuntimeException e) {

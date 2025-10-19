@@ -1,6 +1,7 @@
 package org.example;
 
 import java.util.*;
+import java.text.MessageFormat;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -49,7 +50,11 @@ class Typer {
                 return find;
             }
             if (currentScope.parentScope() == null) {
-                throw new RuntimeException("var can't be found: " + ident);
+                throw fail(
+                    span,
+                    "var <" + ident + "> can't be found",
+                    "you might forgot to set it"
+                );
             }
             currentScope = currentScope.parentScope();
         }
@@ -82,13 +87,18 @@ class Typer {
         var operator = this.ir.opStore().get(expr.op());
         log.debug(types);
         log.debug(operator);
+
         for (var alt : operator.alternatives()) {
             // FIXME: can't do typecasts
             if (alt.argTypes().equals(types)) {
                 return alt.returnType();
             }
         }
-        throw new RuntimeException("expr doesn't typecheck " + expr);
+        throw fail(
+            span,
+            "can't apply operator to parameters: " + expr.op(),
+            "your parameters: " + types
+        );
     }
 
     IR.TY toType(
@@ -163,7 +173,11 @@ class Typer {
             if (claimedType == valueType) {
                 resType = valueType;
             } else {
-                throw new RuntimeException("wrong type");
+                throw fail(
+                    span,
+                    "wrong type",
+                    "expected: " + valueType + " specified: " + claimedType
+                );
             }
         } else {
             resType = valueType;
@@ -200,7 +214,16 @@ class Typer {
                             return;
                         }
                     }
-                    throw new RuntimeException("return doesnt typecheck");
+                    var types = fun
+                        .alternatives()
+                        .stream()
+                        .map(p -> p.returnType())
+                        .collect(Collectors.toCollection(ArrayList::new));
+                    throw fail(
+                        span,
+                        "unexpected return type",
+                        "expected: " + types + " got: " + type
+                    );
                 }
                 case ST.Stmt s -> {
                     throw new RuntimeException("stmt is not implemented" + s);
@@ -278,6 +301,7 @@ class Typer {
         this.typeCheckBlock(stmt.block(), newScope);
     }
 
+
     void typecheck() {
         var stmts = parseTree.stmts().size();
         for (var idx = 0; idx < stmts; idx++) {
@@ -296,12 +320,23 @@ class Typer {
         }
     }
 
-    Integer getId() {
-        this.nextId += 1;
-        return this.nextId;
+    RuntimeException fail(Pair<Integer, Integer> span, String err, String hint) {
+        throw new RuntimeException(
+            MessageFormat.format("""
+
+> At {0} failure: {1}.
+> Hint: {2}
+""",
+            formatSpan(span), err, hint)
+        );
     }
 
-    public Typer(ST parseTree) {
+    String formatSpan(Pair<Integer, Integer> span) {
+        return SpanUtils.formatSpan(span, this.lineIndex);
+    }
+
+    public Typer(ST parseTree, ArrayList<Integer> lineIndex) {
         this.parseTree = parseTree;
+        this.lineIndex = lineIndex;
     }
 }
