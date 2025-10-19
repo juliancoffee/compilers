@@ -179,11 +179,12 @@ class App {
 let y = 5 + 6;
 func noop() -> Void {
     let x = 5;
-    x = 6;
+    x = 06;
     printPi();
     printSum(x, y);
     print(x, y);
 }
+func1(x+func2(5));
 """;
             code = """
 let x = 1 + 2 * 3 + 4;
@@ -211,6 +212,55 @@ func main() {
     for c in "hello" {
         print("For loop iteration: ", c);
     }
+}
+""";
+            code = """
+func main() {
+    //while without relops
+    var counter = 0;
+    while counter {
+        print("Counter = " + counter);
+        counter = counter + 1;
+    }
+}
+""";//TODO relops
+            code = """
+    func main() {
+        // Умовне розгалуження if-else
+        if flag {
+            print("Flag is true and pi > 3");
+        } else {
+            print("Condition not met");
+        }
+    }
+""";
+            code = """
+let pi: Double = 3.14;
+let flag: Bool = true;
+func main() {
+// Використання switch
+    let choice: Int = 2;
+    switch choice {
+        case true {
+            print("Choice is 'hello'");
+        }
+        case range(2, 4) {
+            print("Choice is 2 or 3");
+        }
+        case 100.0 {
+            print("Choice is 100.0");
+        }
+        default {
+            print("Choice is something else");
+        }
+    }
+    if flag == false {
+        print("Flag is true and pi > 3");
+    } else {
+        print("Condition not met");
+    }
+    var result: Double = (pi + 2.0) * 3.0 / 2.0 - 1.0;
+    let area = -pi * radius ** 2 ** 3;
 }
 """;
         }
@@ -249,3 +299,6 @@ func main() {
         System.out.println(parser.parseTree);
     }
 }
+//./gradlew run --args="sample/basic.ms2"
+//./gradlew run
+//./gradlew run --args="sample/test_errors/01_missing_terminal.ms2"

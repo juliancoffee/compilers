@@ -2,7 +2,6 @@ package org.example;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.text.MessageFormat;
 
 import org.apache.logging.log4j.LogManager;
@@ -180,6 +179,127 @@ public class Parser {
         return new ST.ForStmt(iterName, iterable, stmts);
     }
 
+    ST.WhileStmt parseWhileStmt() {
+        log.debug("parse while stmt");
+
+        var cond = this.parseExpression();
+        var block = this.parseBlock();
+
+        return new ST.WhileStmt(cond, block);
+    }
+
+    ST.IfStmt parseIfStmt() {
+        log.debug("parse if stmt");
+
+        var cond = this.parseExpression();
+        var thenBlock = this.parseBlock();
+
+        Optional<ArrayList<ST.Stmt>> elseBlock = Optional.empty();
+
+        var next = this.nextPair();
+        switch (next) {
+            case Pair(var span, Keyword kw) when kw.isKeyword("else") -> {
+                elseBlock = Optional.of(this.parseBlock());
+            }
+            default -> this.backPair();
+        }
+
+        return new ST.IfStmt(cond, thenBlock, elseBlock);
+    }
+
+    ST.SwitchStmt parseSwitchStmt() {
+        log.debug("parse switch stmt");
+
+        var expr = this.parseExpression();
+        this.consumeSymbol("{");
+
+        var cases = new ArrayList<ST.CaseStmt>();
+
+        while (true) {
+            var next = this.nextPair();
+            switch (next) {
+                case Pair(var span, Keyword kw) when kw.isKeyword("case") -> {
+                    var comparator = this.parseComparator();
+                    var block = this.parseBlock();
+                    cases.add(new ST.ValueCase(comparator, block));
+                }
+                case Pair(var span, Keyword kw) when kw.isKeyword("default") -> {
+                    var block = this.parseBlock();
+                    cases.add(new ST.DefaultCase(block));
+                }
+                case Pair(var span, Symbol s) when s.isSym("}") -> {
+                    return new ST.SwitchStmt(expr, cases);
+                }
+                case Pair(var span, Token token) -> throw fail(span, token, "expected case/default or '}'");
+            }
+        }
+    }
+    // parse 1const in switch case
+    ST.LiteralExpr parseSingleConst(Pair<Pair<Integer,Integer>, Token> tok) {
+        switch (tok) {
+            case Pair(var span, IntLiteral t) -> {
+                return new ST.IntLiteralExpr(Integer.parseInt(t.intLiteral()));
+            }
+            case Pair(var span, FloatLiteral t) -> {
+                return new ST.FloatLiteralExpr(Double.parseDouble(t.floatLiteral()));
+            }
+            case Pair(var span, StrLiteral t) -> {
+                return new ST.StrLiteralExpr(t.strLiteral());
+            }
+            case Pair(var span, Keyword kw) when kw.isKeyword("true") || kw.isKeyword("false") -> {
+                return new ST.BoolLiteralExpr(kw.isKeyword("true"));
+            }
+            default -> throw fail(tok.first(), tok.second(), "expected Const");
+        }
+    }
+
+    ST.Comparator parseComparator() {
+        var next = this.nextPair();
+        ArrayList<ST.Expression> seq = new ArrayList<>();
+
+        switch (next) {
+            case Pair(var span, Keyword kw) when kw.isKeyword("range") -> {
+                this.consumeSymbol("(");
+                int from = this.consumeIntLiteral();
+                this.consumeSymbol(",");
+                int to = this.consumeIntLiteral();
+                this.consumeSymbol(")");
+                return new ST.RangeComp(from, to);
+            }
+            case Pair(var span, var t) -> {
+                // first el
+                seq.add(parseSingleConst(next));
+
+                // looking for ','
+                while (true) {
+                    var maybeComma = this.nextPair();
+                    if (maybeComma == null) break;
+
+                    switch (maybeComma) {
+                        case Pair(var s, Symbol sym) when sym.isSym(",") -> {
+                            var tok = this.nextPair();
+                            seq.add(parseSingleConst(tok));
+                            continue;
+                        }
+                        default -> {
+                            // no comma
+                            this.backPair();
+                        }
+                    }
+                    break;
+                }
+
+                // its a sequel if we found ','
+                if (seq.size() == 1) {
+                    return new ST.ConstComp(seq.getFirst());
+                } else {
+                    return new ST.SeqComp(seq);
+                }
+            }
+            default -> throw fail(next.first(), next.second(), "invalid comparator");
+        }
+    }
+
     ArrayList<ST.Stmt> parseBlock() {
         log.debug("parse block");
 
@@ -198,9 +318,12 @@ public class Parser {
                         case "print" -> stmts.add(this.parsePrintStmt());
                         case "return" -> stmts.add(this.parseReturnStmt());
                         case "for" -> stmts.add(this.parseForStmt());
+                        case "while" -> stmts.add(this.parseWhileStmt());
+                        case "if" -> stmts.add(this.parseIfStmt());
+                        case "switch" -> stmts.add(this.parseSwitchStmt());
                         default -> {
                             var keywords = Set.of(
-                                "let", "var", "print", "return"
+                                "let", "var", "print", "return", "while", "if", "switch"
                             );
                             throw fail(
                                 span,
@@ -350,11 +473,68 @@ public class Parser {
         return new ST.IdentExpr(ident);
     }
 
-    ST.Expression parseFactor() {
+//    ST.Expression parseFactor() {
+//        log.debug("parse factor");
+//
+//        var nextToken = this.nextPair();
+//        switch (nextToken) {
+//            case Pair(var span, Ident(String ident)) -> {
+//                this.checkpoint();
+//                try {
+//                    var expr = this.commit(this.parseFuncCallExpr(ident));
+//                    return expr;
+//                } catch (RuntimeException e) {
+//                    this.rollback(e);
+//                }
+//
+//                return this.commit(this.parseIdentExpr(ident));
+//            }
+//            case Pair(var span, IntLiteral token) -> {
+//                var val = Integer.parseInt(token.intLiteral());
+//                return new ST.IntLiteralExpr(val);
+//            }
+//            case Pair(var span, FloatLiteral token) -> {
+//                var val = Double.parseDouble(token.floatLiteral());
+//                return new ST.FloatLiteralExpr(val);
+//            }
+//            case Pair(var span, StrLiteral token) -> {
+//                return new ST.StrLiteralExpr(token.strLiteral());
+//            }
+//            /*
+//             * NOTE: we don't parse BoolLiteral here, it should go with RelExpr
+//             */
+//            // not ident, not an int, fail
+//            case Pair(var span, Token token) -> throw fail(
+//                span, token, "expected Literal or Ident"
+//            );
+//        }
+//    }
+
+    ST.Expression parseFactor() { //with unary operators
         log.debug("parse factor");
 
         var nextToken = this.nextPair();
         switch (nextToken) {
+            case Pair(var span, Symbol s) when s.isSym("+") -> {
+                var factor = parseFactor();
+                return new ST.UnaryOpExpr(ST.UNARY_OP.PLUS, factor);
+            }
+            case Pair(var span, Symbol s) when s.isSym("-") -> {
+                var factor = parseFactor();
+                return new ST.UnaryOpExpr(ST.UNARY_OP.MINUS, factor);
+            }
+            case Pair(var span, Symbol s) when s.isSym("!") -> {
+                var factor = parseFactor();
+                return new ST.UnaryOpExpr(ST.UNARY_OP.NOT, factor);
+            }
+            case Pair(var span, Symbol s) when s.isSym("(") -> {
+                var expr = this.parseExpression();
+                this.consumeSymbol(")");
+                return expr;
+            }
+            case Pair(var span, Keyword kw) when kw.isKeyword("true") || kw.isKeyword("false") -> {
+                return new ST.BoolLiteralExpr(kw.isKeyword("true"));
+            } // for relops like flag==true
             case Pair(var span, Ident(String ident)) -> {
                 this.checkpoint();
                 try {
@@ -363,57 +543,62 @@ public class Parser {
                 } catch (RuntimeException e) {
                     this.rollback(e);
                 }
-
                 return this.commit(this.parseIdentExpr(ident));
             }
-            case Pair(var span, IntLiteral token) -> {
-                var val = Integer.parseInt(token.intLiteral());
-                return new ST.IntLiteralExpr(val);
+            case Pair(var span, IntLiteral t) -> {
+                return new ST.IntLiteralExpr(Integer.parseInt(t.intLiteral()));
             }
-            case Pair(var span, FloatLiteral token) -> {
-                var val = Double.parseDouble(token.floatLiteral());
-                return new ST.FloatLiteralExpr(val);
+            case Pair(var span, FloatLiteral t) -> {
+                return new ST.FloatLiteralExpr(Double.parseDouble(t.floatLiteral()));
             }
-            case Pair(var span, StrLiteral token) -> {
-                return new ST.StrLiteralExpr(token.strLiteral());
+            case Pair(var span, StrLiteral t) -> {
+                return new ST.StrLiteralExpr(t.strLiteral());
             }
-            /*
-             * NOTE: we don't parse BoolLiteral here, it should go with RelExpr
-             */
-            // not ident, not an int, fail
-            case Pair(var span, Token token) -> throw fail(
-                span, token, "expected Literal or Ident"
-            );
+            default -> throw fail(nextToken.first(), nextToken.second(), "expected Factor");
         }
+    }
+
+    ST.Expression parsePower() {
+        log.debug("parse power expr");
+
+        ST.Expression left = this.parseFactor();
+
+        var next = this.nextPair();
+        if (next != null && next.second() instanceof Symbol s && s.isSym("**")) {
+            // recursively parse the right part
+            ST.Expression right = this.parsePower();
+            return new ST.BinOpExpr(ST.BIN_OP.POW, left, right);
+        }
+
+        if (next != null) this.backPair();
+        return left;
     }
 
     ST.Expression parseTerm() {
         log.debug("parse term expr (* and /)");
-        var a = this.parseFactor();
+        ST.Expression left = parsePower();
 
-        ST.Expression binOp = a;
-        Pair<Pair<Integer, Integer>, Token> nextToken;
+        while (true) {
+            var next = this.nextPair();
+            if (next == null) break;
 
-        boolean close = false;
-        while (!close) {
-            nextToken = this.nextPair();
-            switch (nextToken) {
-                case Pair(var span, Symbol token) when token.isSym("*") -> {
-                    var b = this.parseFactor();
-                    binOp = new ST.BinOpExpr(ST.BIN_OP.MUL, binOp, b);
+            switch (next.second()) {
+                case Symbol s when s.isSym("*") -> {
+                    ST.Expression right = parsePower();
+                    left = new ST.BinOpExpr(ST.BIN_OP.MUL, left, right);
                 }
-                case Pair(var span, Symbol token) when token.isSym("/") -> {
-                    var b = this.parseFactor();
-                    binOp = new ST.BinOpExpr(ST.BIN_OP.DIV, binOp, b);
+                case Symbol s when s.isSym("/") -> {
+                    ST.Expression right = parsePower();
+                    left = new ST.BinOpExpr(ST.BIN_OP.DIV, left, right);
                 }
-                case Pair(var span, Token token) -> {
+                default -> {
                     this.backPair();
-                    return binOp;
+                    return left;
                 }
             }
         }
 
-        return binOp;
+        return left;
     }
 
     ST.Expression parseArithExpr() {
@@ -444,11 +629,71 @@ public class Parser {
 
         return binOp;
     }
+    ST.Expression parseRelExpr() {
+        log.debug("parse rel expr");
+        var next = this.nextPair();
+
+        // BoolConst
+        if (next.second() instanceof Keyword kw && (kw.isKeyword("true") || kw.isKeyword("false"))) {
+            boolean val = kw.isKeyword("true");
+            return new ST.BoolLiteralExpr(val);
+        }
+
+        this.backPair();
+        ST.Expression left = parseArithExpr();
+
+        next = this.nextPair();
+        if (next != null && next.second() instanceof Symbol sym) {
+            ST.BIN_OP op;
+            switch (sym.symbol()) {
+                case "==" -> op = ST.BIN_OP.EQ;
+                case "!=" -> op = ST.BIN_OP.NE;
+                case "<"  -> op = ST.BIN_OP.LT;
+                case "<=" -> op = ST.BIN_OP.LE;
+                case ">"  -> op = ST.BIN_OP.GT;
+                case ">=" -> op = ST.BIN_OP.GE;
+                default -> {
+                    this.backPair();
+                    return left;
+                }
+            }
+            ST.Expression right = parseArithExpr();
+            return new ST.BinOpExpr(op, left, right);
+        }
+
+        if (next != null) this.backPair();
+        return left;
+    }
+
+    ST.Expression parseLogicExpr() {
+        log.debug("parse logic expr");
+
+        ST.Expression left = this.parseRelExpr();
+        while (true) {
+            var next = this.nextPair();
+            if (next == null) break;
+
+            ST.BIN_OP op;
+            switch (next.second()) {
+                case Symbol s when s.isSym("&&") -> op = ST.BIN_OP.AND;
+                case Symbol s when s.isSym("||") -> op = ST.BIN_OP.OR;
+                default -> {
+                    this.backPair();
+                    return left;
+                }
+            }
+
+            ST.Expression right = this.parseRelExpr();
+            left = new ST.BinOpExpr(op, left, right);
+        }
+        return left;
+    }
+
 
     ST.Expression parseExpression() {
         log.debug("parse expr");
 
-        return this.parseArithExpr();
+        return this.parseLogicExpr();
     }
 
     @FunctionalInterface

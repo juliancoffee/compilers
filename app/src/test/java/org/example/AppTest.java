@@ -1,3 +1,5 @@
+package org.example;
+
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -653,5 +655,227 @@ class FullLexTest {
         expect
             .serializer("json")
             .toMatchSnapshot(formattedTable);
+    }
+}
+
+
+class ExtendedParseTest {
+
+    private static Optional<ST.TY> none() {
+        return Optional.empty();
+    }
+
+    private ST parseCode(String code) {
+        var lexer = new Lexer(code);
+        lexer.lex();
+        var parser = new Parser(lexer.tokenTable, lexer.lineIndex);
+        parser.parse();
+        return parser.parseTree;
+    }
+
+    @Test
+    void testBoolLiteralTrue() {
+        var input = "let flag = true;";
+        var actual = parseCode(input);
+
+        var expected = new ST(new ArrayList<>(List.of(
+                new ST.LetStmt("flag", none(), new ST.BoolLiteralExpr(true))
+        )));
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void testLogicAndOr() {
+        var input = "let result = a && b || c;";
+        var actual = parseCode(input);
+
+        var expected = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("result", none(),
+                new ST.BinOpExpr(
+                    ST.BIN_OP.OR,
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.AND,
+                        new ST.IdentExpr("a"),
+                        new ST.IdentExpr("b")
+                    ),
+                    new ST.IdentExpr("c")
+                )
+            )
+        )));
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void testNotOperator() {
+        var input = "let x = !flag;";
+        var actual = parseCode(input);
+
+        var expected = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("x", none(),
+                new ST.UnaryOpExpr(ST.UNARY_OP.NOT, new ST.IdentExpr("flag"))
+            )
+        )));
+
+        assertEquals(expected, actual);
+    }
+
+
+    @Test
+    void testRelationalExpr() {
+        var input = "let cmp = a < b;";
+        var actual = parseCode(input);
+
+        var expected = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("cmp", none(),
+                new ST.BinOpExpr(ST.BIN_OP.LT,
+                    new ST.IdentExpr("a"),
+                    new ST.IdentExpr("b")
+                )
+            )
+        )));
+
+        assertEquals(expected, actual);
+    }
+
+
+    @Test
+    void testPowerRightAssociativity() {
+        var input = "let area = pi * radius ** 2 ** 3;";
+        var actual = parseCode(input);
+
+        // Expected: pi * (radius ** (2 ** 3))
+        var expected = new ST(new ArrayList<>(List.of(
+            new ST.LetStmt("area", none(),
+                new ST.BinOpExpr(
+                    ST.BIN_OP.MUL,
+                    new ST.IdentExpr("pi"),
+                    new ST.BinOpExpr(
+                        ST.BIN_OP.POW,
+                        new ST.IdentExpr("radius"),
+                        new ST.BinOpExpr(
+                            ST.BIN_OP.POW,
+                            new ST.IntLiteralExpr(2),
+                            new ST.IntLiteralExpr(3)
+                        )
+                    )
+                )
+            )
+        )));
+
+        assertEquals(expected, actual);
+    }
+
+
+    @Test
+    void testWhileStmt() {
+        var input = "func main() { while i < 10 { let i = i + 1; } }";
+        var actual = parseCode(input);
+
+        var expected = new ST(new ArrayList<>(List.of(
+            new ST.FuncStmt(
+                "main",
+                new ArrayList<>(),
+                Optional.empty(),
+                new ArrayList<>(List.of(
+                    new ST.WhileStmt(
+                        new ST.BinOpExpr(ST.BIN_OP.LT,
+                            new ST.IdentExpr("i"),
+                            new ST.IntLiteralExpr(10)
+                        ),
+                        new ArrayList<>(List.of(
+                            new ST.LetStmt("i", Optional.empty(),
+                                new ST.BinOpExpr(
+                                    ST.BIN_OP.ADD,
+                                    new ST.IdentExpr("i"),
+                                    new ST.IntLiteralExpr(1)
+                                )
+                            )
+                        ))
+                    )
+                ))
+            )
+        )));
+
+        assertEquals(expected, actual);
+    }
+
+
+    @Test
+    void testIfElseStmt() {
+        var input = "func main() { if a < b { let x = 1; } else { let x = 2; } }";
+        var actual = parseCode(input);
+
+        var expected = new ST(new ArrayList<>(List.of(
+            new ST.FuncStmt(
+                "main",
+                new ArrayList<>(),
+                Optional.empty(),
+                new ArrayList<>(List.of(
+                    new ST.IfStmt(
+                        new ST.BinOpExpr(ST.BIN_OP.LT,
+                            new ST.IdentExpr("a"),
+                            new ST.IdentExpr("b")
+                        ),
+                        new ArrayList<>(List.of(
+                            new ST.LetStmt("x", Optional.empty(), new ST.IntLiteralExpr(1))
+                        )),
+                        Optional.of(new ArrayList<>(List.of(
+                            new ST.LetStmt("x", Optional.empty(), new ST.IntLiteralExpr(2))
+                        )))
+                    )
+                ))
+            )
+        )));
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void testSwitchStmt() {
+        var input = """
+        func main() {
+            switch val {
+                case 1, 2 { let x = "low"; }
+                case 3 { let x = "mid"; }
+                default { let x = "high"; }
+            }
+        }
+    """;
+        var actual = parseCode(input);
+
+        var cases = new ArrayList<ST.CaseStmt>(List.of(
+            new ST.ValueCase(
+                new ST.SeqComp(new ArrayList<>(List.of(
+                    new ST.IntLiteralExpr(1),
+                    new ST.IntLiteralExpr(2)
+                ))),
+                new ArrayList<>(List.of(
+                    new ST.LetStmt("x", Optional.empty(), new ST.StrLiteralExpr("low"))
+                ))
+            ),
+            new ST.ValueCase(
+                new ST.ConstComp(new ST.IntLiteralExpr(3)),
+                new ArrayList<>(List.of(
+                        new ST.LetStmt("x", Optional.empty(), new ST.StrLiteralExpr("mid"))
+                ))
+            ),
+            new ST.DefaultCase(new ArrayList<>(List.of(
+                new ST.LetStmt("x", Optional.empty(), new ST.StrLiteralExpr("high"))
+            )))
+        ));
+
+        var expected = new ST(new ArrayList<>(List.of(
+            new ST.FuncStmt(
+                "main",
+                new ArrayList<>(),
+                Optional.empty(),
+                new ArrayList<>(List.of(
+                    new ST.SwitchStmt(new ST.IdentExpr("val"), cases)
+                ))
+            )
+        )));
+        assertEquals(expected, actual);
     }
 }
