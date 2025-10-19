@@ -7,8 +7,8 @@
     </Appenders>
     <Loggers>
         <Logger name="lexer" level="info" />
-        <Logger name="parser" level="trace" />
-        <!-- <Logger name="typecheck" level="trace" /> -->
+        <Logger name="parser" level="info" />
+        <Logger name="typer" level="trace" />
 
         <Root level="off">
             <AppenderRef ref="ConsoleAppender"/>

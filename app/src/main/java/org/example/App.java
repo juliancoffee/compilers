@@ -263,6 +263,12 @@ func main() {
     let area = -pi * radius ** 2 ** 3;
 }
 """;
+            code = """
+let a = 5;
+func addA(b: Int) -> Int {
+    return a + b;
+}
+""";
         }
 
         var lexer = new Lexer(code);
@@ -295,8 +301,20 @@ func main() {
             .registerTypeAdapter(Optional.class, new OptionalAdapter())
             .setPrettyPrinting()
             .create();
-        System.out.println(gson.toJson(parser.parseTree));
-        System.out.println(parser.parseTree);
+        // System.out.println(gson.toJson(parser.parseTree));
+
+        var typer = new Typer(parser.parseTree);
+        try {
+            typer.typecheck();
+        } catch (RuntimeException e) {
+            System.err.println(gson.toJson(
+                IR.nullifyParentScopes(typer.ir.scope()))
+            );
+            throw e;
+        }
+        System.out.println(gson.toJson(
+            IR.nullifyParentScopes(typer.ir.scope()))
+        );
     }
 }
 //./gradlew run --args="sample/basic.ms2"
