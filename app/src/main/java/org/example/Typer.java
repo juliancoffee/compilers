@@ -87,6 +87,13 @@ class Typer {
         var operator = this.ir.opStore().get(expr.op());
         log.debug(types);
         log.debug(operator);
+        if (operator == null) {
+            throw fail(
+                span,
+                "undefined function: " + expr.op(),
+                "maybe you forgot to define it?"
+            );
+        }
 
         for (var alt : operator.alternatives()) {
             // FIXME: can't do typecasts
@@ -175,8 +182,12 @@ class Typer {
             case ST.IdentExpr(String identExpr) -> {
                 yield new IR.Ref(identExpr);
             }
-            case ST.Expression s -> {
-                throw new RuntimeException("unexpected expr to eval: " + s);
+            case ST.FuncCallExpr(var callIdent, var args) -> {
+                var funArgs = args
+                    .stream()
+                    .map((e) -> this.toVar(e, span, scope))
+                    .collect(Collectors.toCollection(ArrayList::new));
+                yield new IR.Expr(callIdent, funArgs);
             }
         };
     }
@@ -310,8 +321,26 @@ class Typer {
                 case ST.WhileStmt whileStmt -> {
                     typeCheckWhileStmt(whileStmt, span, scope);
                 }
-                case ST.Stmt s -> {
-                    throw new RuntimeException("stmt is not implemented" + s);
+                case ST.ForStmt forStmt -> {
+                    typeCheckForStmt(forStmt, span, scope);
+                }
+                case ST.FuncCallStmt(var callIdent, var args) -> {
+                    for (var expr : args) {
+                        var value = this.toValue(expr, span, scope);
+                        var type = this.typeCheckExpression(value, span, scope);
+                    }
+                    var funArgs = args
+                        .stream()
+                        .map((e) -> this.toVar(e, span, scope))
+                        .collect(Collectors.toCollection(ArrayList::new));
+
+                    var action = new IR.Expr(callIdent, funArgs);
+                    this.resolveExpr(action, span, scope);
+
+                    scope.entries().add(new IR.Action(action));
+                }
+                case ST.FuncStmt s -> {
+                    throw fail(span, "func can't be nested", "yes");
                 }
             }
         }
@@ -364,6 +393,56 @@ class Typer {
 
             typeCheckBlock(stmt.elseBlock().get(), elseScope);
         }
+    }
+
+    void typeCheckForStmt(
+        ST.ForStmt stmt,
+        Pair<Integer, Integer> span,
+        IR.Scope scope
+    ) {
+        IR.TY iterType;
+        switch (stmt.iterable()) {
+            case ST.RangeExpr(var from, var to, var step) -> {
+                iterType = IR.TY.INT;
+            }
+            case ST.Expression e -> {
+                var type = this.toType(e, span, scope);
+                if (type != IR.TY.STRING) {
+                    throw fail(
+                        span,
+                        "for iterable must be String or range()",
+                        "got: " + type
+                    );
+                }
+                iterType = IR.TY.STRING;
+            }
+        }
+
+        IR.Scope forScope = new IR.Scope(
+            scope,
+            scope.funcName(),
+            new HashMap<>(),
+            new ArrayList<>()
+        );
+
+        var forName = stmt.forIdent();
+        IR.Scoped scopedFor = new IR.Scoped(
+            IR.SCOPE_KIND.WHILE,
+            new ArrayList<>(List.of(forName)),
+            Optional.empty(),
+            forScope
+        );
+
+        var arg = new IR.Var(
+            new IR.Arg(iterType),
+            iterType,
+            span,
+            false
+        );
+        forScope.varMapping().put(forName, arg);
+
+        scope.entries().add(scopedFor);
+        typeCheckBlock(stmt.block(), forScope);
     }
 
     void typeCheckWhileStmt(
