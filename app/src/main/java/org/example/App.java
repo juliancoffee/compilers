@@ -238,17 +238,14 @@ func main() {
 let pi: Double = 3.14;
 let flag: Bool = true;
 func main() {
-// Використання switch
+    // Використання switch
     let choice: Int = 2;
     switch choice {
-        case true {
-            print("Choice is 'hello'");
+        case 1 {
+            print("Choice is 1");
         }
         case range(2, 4) {
             print("Choice is 2 or 3");
-        }
-        case 100.0 {
-            print("Choice is 100.0");
         }
         default {
             print("Choice is something else");
@@ -261,12 +258,6 @@ func main() {
     }
     var result: Double = (pi + 2.0) * 3.0 / 2.0 - 1.0;
     let area = -pi * radius ** 2 ** 3;
-}
-""";
-            code = """
-let a = 5;
-func addA(b: Int) -> String {
-    return a + b;
 }
 """;
         }

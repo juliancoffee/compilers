@@ -39,7 +39,7 @@ public record IR(
         permits NewVar, Action, Scoped {}
 
     public record NewVar(String name) implements Entry {}
-    public record Action(Var bind) implements Entry {}
+    public record Action(Value bind) implements Entry {}
 
     /*
      * Scopes
@@ -58,7 +58,7 @@ public record IR(
         // for variable, or function args
         ArrayList<String> bornVars,
         // if, switch, while expression
-        Optional<Integer> dependencyId,
+        Optional<Value> dependencyValue,
         Scope scope
     ) implements Entry {}
 
@@ -268,7 +268,7 @@ public record IR(
                 Scoped newScopedEntry = new Scoped(
                     scopedEntry.kind(),
                     scopedEntry.bornVars(),
-                    scopedEntry.dependencyId(),
+                    scopedEntry.dependencyValue(),
                     nullifiedInnerScope
                 );
                 newEntries.add(newScopedEntry);

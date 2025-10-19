@@ -140,6 +140,12 @@ class Typer {
                     List.of(aVar, bVar)
                 ));
             }
+            case ST.UnaryOpExpr(var op, var a) -> {
+                var aVar = this.toVar(a, span, scope);
+                yield new IR.Expr(IR.unOpCode(op), new ArrayList<IR.Var>(
+                    List.of(aVar)
+                ));
+            }
             case ST.IdentExpr(String identExpr) -> {
                 yield new IR.Ref(identExpr);
             }
@@ -202,7 +208,14 @@ class Typer {
                     var letType,
                     var expr
                 ) -> typeCheckNewVar(
-                    letName, letType, expr, false, span, this.ir.scope()
+                    letName, letType, expr, false, span, scope
+                );
+                case ST.VarStmt(
+                    var letName,
+                    var letType,
+                    var expr
+                ) -> typeCheckNewVar(
+                    letName, letType, expr, true, span, scope
                 );
                 case ST.ReturnStmt(var expr) -> {
                     var value = this.toValue(expr, span, scope);
@@ -225,10 +238,244 @@ class Typer {
                         "expected: " + types + " got: " + type
                     );
                 }
+                case ST.AssignStmt(var ident, var expr) -> {
+                    var value = this.toValue(expr, span, scope);
+                    var type = this.typeCheckExpression(value, span, scope);
+                    var tgt = this.lookupRef(ident, span, scope);
+                    if (!tgt.mutable()) {
+                        throw fail(
+                            span,
+                            "cant mutate " + ident,
+                            "variable was defined at " + formatSpan(tgt.span())
+                        );
+                    }
+                    if (tgt.type() != type) {
+                        throw fail(
+                            span,
+                            "wrong assignment "
+                                + ident
+                                + " "
+                                + typeMismatch(
+                                    tgt.type(),
+                                    type
+                                ),
+                            "variable was defined at " + formatSpan(tgt.span())
+                        );
+                    }
+                }
+                case ST.SwitchStmt s -> this.typeCheckSwitchStmt(
+                    s, span, scope
+                );
+                case ST.PrintStmt(var exprs) -> {
+                    for (var expr : exprs) {
+                        var value = this.toValue(expr, span, scope);
+                        var type = this.typeCheckExpression(value, span, scope);
+                    }
+                    var args = exprs
+                        .stream()
+                        .map((e) -> this.toVar(e, span, scope))
+                        .collect(Collectors.toCollection(ArrayList::new));
+                    var action = new IR.Expr("print", args);
+                    scope.entries().add(new IR.Action(action));
+                }
+                case ST.IfStmt ifStmt -> {
+                    typeCheckIfStmt(ifStmt, span, scope);
+                }
+                case ST.WhileStmt whileStmt -> {
+                    typeCheckWhileStmt(whileStmt, span, scope);
+                }
                 case ST.Stmt s -> {
                     throw new RuntimeException("stmt is not implemented" + s);
                 }
             }
+        }
+    }
+
+    String typeMismatch(IR.TY t1, IR.TY t2) {
+        return String.format("%s != %s", t1, t2);
+    }
+
+    void typeCheckIfStmt(
+            ST.IfStmt stmt,
+            Pair<Integer, Integer> span,
+            IR.Scope scope
+    ) {
+        IR.TY condType = this.toType(stmt.ifCond(), span, scope);
+        if (condType != IR.TY.BOOL) {
+            throw fail(span, "if condition must be BOOL", "got: " + condType);
+        }
+        // if
+        IR.Scope thenScope = new IR.Scope(
+            scope,
+            scope.funcName(),
+            new HashMap<>(),
+            new ArrayList<>()
+        );
+        IR.Scoped scopedThen = new IR.Scoped(
+            IR.SCOPE_KIND.IF_BRANCH,
+            new ArrayList<>(),
+            Optional.empty(),
+            thenScope
+        );
+        scope.entries().add(scopedThen);
+
+        //else
+        typeCheckBlock(stmt.thenBlock(), thenScope);
+        if (stmt.elseBlock().isPresent()) {
+            IR.Scope elseScope = new IR.Scope(
+                scope,
+                scope.funcName(),
+                new HashMap<>(),
+                new ArrayList<>()
+            );
+            IR.Scoped scopedElse = new IR.Scoped(
+                IR.SCOPE_KIND.ELSE_BRANCH,
+                new ArrayList<>(),
+                Optional.empty(),
+                elseScope
+            );
+            scope.entries().add(scopedElse);
+
+            typeCheckBlock(stmt.elseBlock().get(), elseScope);
+        }
+    }
+
+    void typeCheckWhileStmt(
+        ST.WhileStmt stmt,
+        Pair<Integer, Integer> span,
+        IR.Scope scope
+    ) {
+        IR.TY condType = this.toType(stmt.whileCond(), span, scope);
+        if (condType != IR.TY.BOOL) {
+            throw fail(span, "while condition must be BOOL", "got: " + condType);
+        }
+
+        IR.Scope whileScope = new IR.Scope(
+            scope,
+            scope.funcName(),
+            new HashMap<>(),
+            new ArrayList<>()
+        );
+
+        IR.Scoped scopedWhile = new IR.Scoped(
+            IR.SCOPE_KIND.WHILE,
+            new ArrayList<>(),
+            Optional.empty(),
+            whileScope
+        );
+
+        scope.entries().add(scopedWhile);
+        typeCheckBlock(stmt.block(), whileScope);
+    }
+
+    void typeCheckSwitchStmt(
+        ST.SwitchStmt stmt,
+        Pair<Integer, Integer> span,
+        IR.Scope scope
+    ) {
+        log.debug("SwitchStmt");
+        log.debug(span);
+
+        var matched = stmt.switchExpr();
+        var matchedType = this.toType(matched, span, scope);
+
+        boolean last = false;
+        for (var caseStmt : stmt.cases()) {
+            ST.Block blockToCreate;
+            Optional<IR.Value> pattern = Optional.empty();
+
+            if (last) {
+                throw fail(span, "unexpected case", "default was reached");
+            }
+
+            switch (caseStmt) {
+                case ST.ValueCase(var comparator, var block) -> {
+                    blockToCreate = block;
+
+                    switch (comparator) {
+                        case ST.ConstComp(var literal) -> {
+                            // should be covered by parser
+                            assert literal instanceof ST.LiteralExpr;
+
+                            var type = this.toType(literal, span, scope);
+                            if (matchedType != type) {
+                                throw fail(
+                                    span,
+                                    "wrong type of "
+                                        + literal
+                                        + ": "
+                                        + typeMismatch(matchedType, type),
+                                    "case types should be equal to switch expr"
+                                );
+                            }
+                            pattern = Optional.of(
+                                this.toValue(literal, span, scope)
+                            );
+                        }
+                        case ST.SeqComp(var literals) -> {
+                            for (var literal : literals) {
+                                // should be covered by parser
+                                assert literal instanceof ST.LiteralExpr;
+
+                                var type = this.toType(literal, span, scope);
+                                if (matchedType != type) {
+                                    throw fail(
+                                        span,
+                                        "wrong type of "
+                                            + literal
+                                            + ": "
+                                            + typeMismatch(matchedType, type),
+                                        "case types should be equal to switch expr"
+                                    );
+                                }
+                            }
+                            var args = literals
+                                .stream()
+                                .map((e) -> this.toVar(e, span, scope))
+                                .collect(Collectors.toCollection(ArrayList::new));
+                            pattern = Optional.of(new IR.Expr("any", args));
+
+                        }
+                        case ST.RangeComp(int from, int to) -> {
+                            if (matchedType != IR.TY.INT) {
+                                throw fail(
+                                    span,
+                                    "wrong case type: "
+                                        + typeMismatch(matchedType, IR.TY.INT),
+                                    "if matched with range(), variable must be Int"
+                                );
+                            }
+                            // TODO: add args
+                            pattern = Optional.of(
+                                new IR.Expr("caseRange", new ArrayList<>())
+                            );
+                        }
+                    }
+                }
+                case ST.DefaultCase(var block) -> {
+                    log.debug(block);
+                    blockToCreate = block;
+                    last = true;
+                }
+            }
+
+            var caseScope = new IR.Scope(
+                scope,
+                scope.funcName(),
+                new HashMap<String, IR.Var>(),
+                new ArrayList<IR.Entry>()
+            );
+
+            var scoped = new IR.Scoped(
+                IR.SCOPE_KIND.CASE_BRANCH,
+                new ArrayList<>(),
+                pattern,
+                caseScope
+            );
+
+            scope.entries().add(scoped);
+
+            typeCheckBlock(blockToCreate, caseScope);
         }
     }
 
