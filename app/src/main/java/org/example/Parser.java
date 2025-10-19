@@ -815,7 +815,7 @@ public class Parser {
             log.debug("" + "[" + this.numToken +"] " + formatPair(token));
             return token;
         } catch (IndexOutOfBoundsException e) {
-            return null;
+            throw new RuntimeException("Unexpected EOF");
         }
     }
 

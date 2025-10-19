@@ -22,14 +22,6 @@ public record IR(
         BOOL,
         STRING,
         VOID,
-        // if we dont know yet
-        UNKNOWN,
-        // for func<T>(x: T, y: T) to check that args are same
-        //
-        // for equality and assignments
-        SAME,
-        // for print
-        ANY
     }
 
     /*
@@ -100,7 +92,6 @@ public record IR(
     private static final TY BOOL = TY.BOOL;
     private static final TY STRING = TY.STRING;
     private static final TY VOID = TY.VOID;
-    private static final TY SAME = TY.SAME;
 
     // --- Implementation ---
     public static String binOpCode(ST.BIN_OP op) {
