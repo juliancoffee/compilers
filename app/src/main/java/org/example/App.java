@@ -300,14 +300,18 @@ func main() {
         // System.out.println(gson.toJson(parser.parseTree));
 
         var typer = new Typer(parser.parseTree, lexer.lineIndex);
+        var printerIR = new PrinterIR(lexer.lineIndex);
         try {
             typer.typecheck();
         } catch (RuntimeException e) {
+            var prettyrep = printerIR.print(typer.ir);
             // System.err.println(gson.toJson(
             //     IR.nullifyParentScopes(typer.ir.scope()))
             // );
             throw e;
         }
+        var prettyrep = printerIR.print(typer.ir);
+        System.out.println(prettyrep);
         // System.out.println(gson.toJson(
         //     IR.nullifyParentScopes(typer.ir.scope()))
         // );
