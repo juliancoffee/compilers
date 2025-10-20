@@ -186,7 +186,7 @@ public record ST(
 
     public record ConstComp(Expression literal) implements Comparator {}
     public record SeqComp(ArrayList<Expression> literals) implements Comparator {}
-    public record RangeComp(int from, int to) implements Comparator {}
+    public record RangeComp(Integer from, Integer to) implements Comparator {}
 
     // =================================================================
     // NEW FUNCTION TO CLEAR ALL SPANS

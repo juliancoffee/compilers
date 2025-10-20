@@ -3,7 +3,7 @@ package org.example;
 import java.util.*;
 
 public record IR(
-    HashMap<String, Operator> opStore,
+    LinkedHashMap<String, Operator> opStore,
     Scope scope
 ) {
     public record Scope(
@@ -11,7 +11,7 @@ public record IR(
         // function name
         String funcName,
         // stores and mappings
-        HashMap<String, IR.Var> varMapping,
+        LinkedHashMap<String, IR.Var> varMapping,
         // for vars and scopes
         ArrayList<IR.Entry> entries
     ) {}
@@ -28,10 +28,9 @@ public record IR(
      * Entries
      */
     public sealed interface Entry
-        permits NewVar, Action, Scoped {}
+        permits NewVar, Expr, Scoped {}
 
-    public record NewVar(String name) implements Entry {}
-    public record Action(Value bind) implements Entry {}
+    public record NewVar(String name, Var v) implements Entry {}
 
     /*
      * Scopes
@@ -67,7 +66,7 @@ public record IR(
     // literal
     public record Atom(TY type, String val) implements Value {}
     // expr
-    public record Expr(String op, ArrayList<Var> vars) implements Value {}
+    public record Expr(String op, ArrayList<Var> vars) implements Value, Entry {}
 
     public record Var(
         Value val,
@@ -125,8 +124,8 @@ public record IR(
      * Note: Unary operators are given a 'u' prefix (e.g., "u+", "u-")
      * to distinguish them from their binary counterparts.
      */
-    public static HashMap<String, Operator> defaultOperatorMap() {
-        return new HashMap<>(Map.ofEntries(
+    public static LinkedHashMap<String, Operator> defaultOperatorMap() {
+        return new LinkedHashMap<>(Map.ofEntries(
             // --- Unary Operators ---
             Map.entry("u+", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT)), INT),

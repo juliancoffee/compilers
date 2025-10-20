@@ -29,7 +29,7 @@ class Typer {
             // global namespace
             "",
             // name mappings
-            new HashMap<String, IR.Var>(),
+            new LinkedHashMap<String, IR.Var>(),
             // for vars and scopes
             new ArrayList<IR.Entry>()
         )
@@ -140,6 +140,12 @@ class Typer {
         return new IR.Var(value, type, span, false);
     }
 
+    IR.Var atomVar(IR.TY type, String val, Pair<Integer, Integer> span) {
+        var atom = new IR.Atom(type, val);
+
+        return new IR.Var(atom, type, span, false);
+    }
+
     IR.Value toValue(
         ST.Expression expr, Pair<Integer, Integer> span, IR.Scope scope
     ) {
@@ -195,7 +201,6 @@ class Typer {
         );
         log.debug(span);
 
-        var newVar = new IR.NewVar(name);
         var value = this.toValue(expr, span, scope);
 
         var valueType = typeCheckExpression(value, span, scope);
@@ -217,6 +222,7 @@ class Typer {
         }
 
         var variable = new IR.Var(value, resType, span, mutable);
+        var newVar = new IR.NewVar(name, variable);
         scope.entries().add(newVar);
         if (scope.varMapping().containsKey(name)) {
             throw fail(span, "already declared", "not allowed");
@@ -255,6 +261,12 @@ class Typer {
                     for (var alt : fun.alternatives()) {
                         // FIXME: can't do typecasts
                         if (alt.returnType().equals(type)) {
+                            var action = new IR.Expr("$return", new ArrayList<>(
+                                List.of(
+                                    this.toVar(expr, span, scope)
+                                )
+                            ));
+                            scope.entries().add(action);
                             return;
                         }
                     }
@@ -293,6 +305,13 @@ class Typer {
                             "variable was defined at " + formatSpan(tgt.span())
                         );
                     }
+                    var action = new IR.Expr("$assign", new ArrayList<>(
+                        List.of(
+                            tgt,
+                            this.toVar(expr, span, scope)
+                        )
+                    ));
+                    scope.entries().add(action);
                 }
                 case ST.SwitchStmt s -> this.typeCheckSwitchStmt(
                     s, span, scope
@@ -307,7 +326,7 @@ class Typer {
                         .map((e) -> this.toVar(e, span, scope))
                         .collect(Collectors.toCollection(ArrayList::new));
                     var action = new IR.Expr("print", args);
-                    scope.entries().add(new IR.Action(action));
+                    scope.entries().add(action);
                 }
                 case ST.IfStmt ifStmt -> {
                     typeCheckIfStmt(ifStmt, span, scope);
@@ -331,7 +350,7 @@ class Typer {
                     var action = new IR.Expr(callIdent, funArgs);
                     this.resolveExpr(action, span, scope);
 
-                    scope.entries().add(new IR.Action(action));
+                    scope.entries().add(action);
                 }
                 case ST.FuncStmt s -> {
                     throw fail(span, "func can't be nested", "yes");
@@ -357,7 +376,7 @@ class Typer {
         IR.Scope thenScope = new IR.Scope(
             scope,
             scope.funcName(),
-            new HashMap<>(),
+            new LinkedHashMap<>(),
             new ArrayList<>()
         );
         IR.Scoped scopedThen = new IR.Scoped(
@@ -374,7 +393,7 @@ class Typer {
             IR.Scope elseScope = new IR.Scope(
                 scope,
                 scope.funcName(),
-                new HashMap<>(),
+                new LinkedHashMap<>(),
                 new ArrayList<>()
             );
             IR.Scoped scopedElse = new IR.Scoped(
@@ -415,13 +434,13 @@ class Typer {
         IR.Scope forScope = new IR.Scope(
             scope,
             scope.funcName(),
-            new HashMap<>(),
+            new LinkedHashMap<>(),
             new ArrayList<>()
         );
 
         var forName = stmt.forIdent();
         IR.Scoped scopedFor = new IR.Scoped(
-            IR.SCOPE_KIND.WHILE,
+            IR.SCOPE_KIND.FOR,
             new ArrayList<>(List.of(forName)),
             Optional.empty(),
             forScope
@@ -452,7 +471,7 @@ class Typer {
         IR.Scope whileScope = new IR.Scope(
             scope,
             scope.funcName(),
-            new HashMap<>(),
+            new LinkedHashMap<>(),
             new ArrayList<>()
         );
 
@@ -476,7 +495,8 @@ class Typer {
         log.debug(span);
 
         var matched = stmt.switchExpr();
-        var matchedType = this.toType(matched, span, scope);
+        var matchedVar = this.toVar(matched, span, scope);
+        var matchedType = matchedVar.type();
 
         boolean last = false;
         for (var caseStmt : stmt.cases()) {
@@ -508,7 +528,12 @@ class Typer {
                                 );
                             }
                             pattern = Optional.of(
-                                this.toValue(literal, span, scope)
+                                new IR.Expr("$caseIs", new ArrayList<>(
+                                    List.of(
+                                        matchedVar,
+                                        this.toVar(literal, span, scope)
+                                    )
+                                ))
                             );
                         }
                         case ST.SeqComp(var literals) -> {
@@ -532,10 +557,11 @@ class Typer {
                                 .stream()
                                 .map((e) -> this.toVar(e, span, scope))
                                 .collect(Collectors.toCollection(ArrayList::new));
-                            pattern = Optional.of(new IR.Expr("any", args));
+                            args.add(0, matchedVar);
+                            pattern = Optional.of(new IR.Expr("$caseOf", args));
 
                         }
-                        case ST.RangeComp(int from, int to) -> {
+                        case ST.RangeComp(Integer from, Integer to) -> {
                             if (matchedType != IR.TY.INT) {
                                 throw fail(
                                     span,
@@ -546,7 +572,13 @@ class Typer {
                             }
                             // TODO: add args
                             pattern = Optional.of(
-                                new IR.Expr("caseRange", new ArrayList<>())
+                                new IR.Expr("$caseIn", new ArrayList<>(
+                                    List.of(
+                                        matchedVar,
+                                        atomVar(IR.TY.INT, from.toString(), span),
+                                        atomVar(IR.TY.INT, to.toString(), span)
+                                    )
+                                ))
                             );
                         }
                     }
@@ -561,7 +593,7 @@ class Typer {
             var caseScope = new IR.Scope(
                 scope,
                 scope.funcName(),
-                new HashMap<String, IR.Var>(),
+                new LinkedHashMap<String, IR.Var>(),
                 new ArrayList<IR.Entry>()
             );
 
@@ -599,7 +631,7 @@ class Typer {
             // func name
             name,
             // name mappings
-            new HashMap<String, IR.Var>(),
+            new LinkedHashMap<String, IR.Var>(),
             // for vars and scopes
             new ArrayList<IR.Entry>()
         );
