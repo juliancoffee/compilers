@@ -776,7 +776,7 @@ public class Parser {
     void parseTopStatementList() {
         log.debug("parse top stmt's list");
 
-        while (this.numToken < tokenListLen) {
+        while (this.numToken < tokenListLen + 1) {
             var span = this.lastSpan();
             var stmt = this.parseTopStmt();
             var endSpan = this.lastSpan();

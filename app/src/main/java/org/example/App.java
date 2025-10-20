@@ -257,7 +257,6 @@ func main() {
         print("Condition not met");
     }
     var result: Double = (pi + 2.0) * 3.0 / 2.0 - 1.0;
-    let area = -pi * radius ** 2 ** 3;
 }
 """;
         }

@@ -11,7 +11,7 @@ class Typer {
     /*
      * Type state
      */
-    Integer nextId = 0;
+    boolean hasMain = false;
 
     /*
      * Typer data
@@ -218,7 +218,11 @@ class Typer {
 
         var variable = new IR.Var(value, resType, span, mutable);
         scope.entries().add(newVar);
-        scope.varMapping().put(name, variable);
+        if (scope.varMapping().containsKey(name)) {
+            throw fail(span, "already declared", "not allowed");
+        } else {
+            scope.varMapping().put(name, variable);
+        }
     }
 
     void typeCheckBlock(
@@ -616,20 +620,49 @@ class Typer {
             returnType = IR.TY.VOID;
         }
 
+        var typeArgs = stmt
+            .paramList()
+            .stream()
+            .map((p) -> IR.typeFromST(p.second()))
+            .collect(Collectors.toCollection(ArrayList::new));
         var newOp = new IR.Operator(
             new ArrayList<>(List.of(
                 new IR.OpSpec(
-                    stmt
-                        .paramList()
-                        .stream()
-                        .map((p) -> IR.typeFromST(p.second()))
-                        .collect(Collectors.toCollection(ArrayList::new)),
+                    typeArgs,
                     returnType
                 )
             )));
 
         log.debug("[new func] " + name + " -> " + newOp);
+        if (this.ir.opStore().containsKey(name)) {
+            throw fail(
+                span,
+                "re-defined function " + name,
+                "not allowed"
+            );
+        }
         this.ir.opStore().put(name, newOp);
+
+        if (name.equals("main")) {
+            if (this.hasMain) {
+                throw fail(span, "tried to re-define main", "not allowed");
+            }
+            if (!newOp.equals(new IR.Operator(
+                new ArrayList<>(
+                    List.of(
+                        new IR.OpSpec(
+                            new ArrayList<>(),
+                            IR.TY.VOID
+                        )
+                    )
+                )
+            ))) {
+                throw fail(span,
+                    "wrong main signature: " + typeArgs + " -> " + returnType,
+                    "expected () -> Void");
+            }
+            this.hasMain = true;
+        }
 
         for (var p : stmt.paramList()) {
             var arg = new IR.Var(
@@ -659,6 +692,9 @@ class Typer {
                 );
                 case ST.FuncStmt f -> typeCheckFuncStmt(f, span, this.ir.scope());
             }
+        }
+        if (!this.hasMain) {
+            throw fail(new Pair<>(1, 1), "main wasn't defined", "must be defined");
         }
     }
 
