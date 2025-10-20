@@ -125,114 +125,118 @@ public record IR(
      * to distinguish them from their binary counterparts.
      */
     public static LinkedHashMap<String, Operator> defaultOperatorMap() {
-        return new LinkedHashMap<>(Map.ofEntries(
-            // --- Unary Operators ---
-            Map.entry("u+", new Operator(new ArrayList<>(List.of(
+        // Create an empty LinkedHashMap to preserve insertion order
+        LinkedHashMap<String, Operator> map = new LinkedHashMap<>();
+
+        // --- Unary Operators ---
+        // "u+" and "u-" are used to distinguish from binary "+" and "-"
+        map.put("u+", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT)), INT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT)), FLOAT)
-            )))),
+        ))));
 
-            Map.entry("u-", new Operator(new ArrayList<>(List.of(
+        map.put("u-", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT)), INT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT)), FLOAT)
-            )))),
+        ))));
 
-            // Using "!" for logical NOT
-            Map.entry("!", new Operator(new ArrayList<>(List.of(
+        // Using "!" for logical NOT
+        map.put("!", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(BOOL)), BOOL)
-            )))),
+        ))));
 
-            // --- Binary Arithmetic Operators ---
-            Map.entry("+", new Operator(new ArrayList<>(List.of(
+        // --- Binary Arithmetic Operators ---
+        map.put("+", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), INT),
-                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), INT),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), STRING)
-            )))),
+        ))));
 
-            Map.entry("-", new Operator(new ArrayList<>(List.of(
+        map.put("-", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), INT),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), FLOAT),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), FLOAT)
-            )))),
+        ))));
 
-            Map.entry("*", new Operator(new ArrayList<>(List.of(
+        map.put("*", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), INT),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), FLOAT),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), FLOAT)
-            )))),
+        ))));
 
-            Map.entry("/", new Operator(new ArrayList<>(List.of(
+        map.put("/", new Operator(new ArrayList<>(List.of(
+                new OpSpec(new ArrayList<>(List.of(INT, INT)), INT),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), FLOAT),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), FLOAT)
-            )))),
+        ))));
 
-            // Using "**" for POW
-            Map.entry("**", new Operator(new ArrayList<>(List.of(
+        // Using "**" for POW (exponentiation)
+        map.put("**", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), FLOAT)
-            )))),
+        ))));
 
-            // --- Binary Logical Operators ---
-            Map.entry("&&", new Operator(new ArrayList<>(List.of(
+        // --- Binary Logical Operators ---
+        map.put("&&", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(BOOL, BOOL)), BOOL)
-            )))),
+        ))));
 
-            Map.entry("||", new Operator(new ArrayList<>(List.of(
+        map.put("||", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(BOOL, BOOL)), BOOL)
-            )))),
+        ))));
 
-            // --- Binary Relational Operators ---
-            Map.entry("<", new Operator(new ArrayList<>(List.of(
+        // --- Binary Relational Operators ---
+        map.put("<", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
-            )))),
+        ))));
 
-            Map.entry("<=", new Operator(new ArrayList<>(List.of(
+        map.put("<=", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
-            )))),
+        ))));
 
-            Map.entry(">", new Operator(new ArrayList<>(List.of(
+        map.put(">", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
-            )))),
+        ))));
 
-            Map.entry(">=", new Operator(new ArrayList<>(List.of(
+        map.put(">=", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
-            )))),
+        ))));
 
-            // --- Equality Operators ---
-            Map.entry("==", new Operator(new ArrayList<>(List.of(
+        // --- Equality Operators ---
+        map.put("==", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(BOOL, BOOL)), BOOL)
-            )))),
+        ))));
 
-            Map.entry("!=", new Operator(new ArrayList<>(List.of(
+        map.put("!=", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(BOOL, BOOL)), BOOL)
-            )))),
+        ))));
 
-            // --- Assignment Operator ---
-            Map.entry(":=", new Operator(new ArrayList<>(List.of(
-                new OpSpec(new ArrayList<>(List.of(INT, INT)), VOID),
-                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), VOID),
-                new OpSpec(new ArrayList<>(List.of(STRING, STRING)), VOID),
-                new OpSpec(new ArrayList<>(List.of(BOOL, BOOL)), VOID)
-            )))),
-
-            // --- Built-in Functions ---
-            Map.entry("input", new Operator(new ArrayList<>(List.of(
-                // No arguments
+        // --- Built-in Functions ---
+        map.put("input", new Operator(new ArrayList<>(List.of(
+                // No arguments, returns a STRING
                 new OpSpec(new ArrayList<>(), STRING)
-            ))))
-        ));
+        ))));
+
+        // Return the populated, ordered map
+        return map;
     }
 
     public static TY typeFromST(ST.TY ty) {
