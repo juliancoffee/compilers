@@ -212,10 +212,10 @@ public record ST(
      */
     private void clearSpans(Block block) {
         if (block == null) return;
-        
+
         // 1. Clear the block's own span list
         block.spans.clear();
-        
+
         // 2. Recurse into the block's statements
         for (Stmt stmt : block.stmts) {
             clearSpans(stmt);
@@ -254,7 +254,7 @@ public record ST(
                 clearSpans(s.switchExpr);
                 s.cases.forEach(this::clearSpans);
                 break;
-            
+
             // TopLevel statements (which are also Stmt)
             case LetStmt s: clearSpans(s.expr); break;
             case FuncStmt s: clearSpans(s.block); break;
@@ -277,7 +277,7 @@ public record ST(
             case FuncCallExpr e:
                 e.args.forEach(this::clearSpans);
                 break;
-            
+
             // Base cases (no children)
             case IdentExpr e: break;
             case IntLiteralExpr e: break;

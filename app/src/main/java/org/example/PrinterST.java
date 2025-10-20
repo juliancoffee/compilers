@@ -17,7 +17,7 @@ class PrinterST {
     private final StringBuilder sb = new StringBuilder();
     private int indentLevel = 0;
     private static final String INDENT_CHAR = "  "; // 2 spaces per indent level
-    
+
     private final ArrayList<Integer> lineIndex;
 
     public PrinterST(ArrayList<Integer> lineIndex) {
@@ -30,11 +30,11 @@ class PrinterST {
     private String getLocation(int offset) {
         int searchResult = Collections.binarySearch(lineIndex, offset);
         int lineIdx = (searchResult >= 0) ? searchResult : -(searchResult + 1) - 1;
-        if (lineIdx < 0) lineIdx = 0; 
+        if (lineIdx < 0) lineIdx = 0;
 
         int line = lineIdx + 1;
         int col = offset - lineIndex.get(lineIdx);
-        
+
         return line + ":" + col;
     }
 
@@ -51,9 +51,9 @@ class PrinterST {
         indentLevel = 0;
 
         // Root ST node doesn't have a single span
-        printNode("ST", new Pair<>(1, 1)); 
+        printNode("ST", new Pair<>(1, 1));
         increaseIndent();
-        
+
         for (int i = 0; i < ast.stmts().size(); i++) {
             ST.TopLevelStmt stmt = ast.stmts().get(i);
             Pair<Integer, Integer> span = ast.spans().size() > i ? ast.spans().get(i) : null;
@@ -82,7 +82,7 @@ class PrinterST {
         String loc = getSpanLocation(span);
         printLine(nodeName + fieldsStr + loc);
     }
-    
+
     private void printNode(String nodeName, String... fields) {
         printNode(nodeName, null, fields);
     }
@@ -143,7 +143,7 @@ class PrinterST {
     // --- Node Printers (with Spans) ---
 
     private void print(ST.Block block) {
-        printNode("Block"); 
+        printNode("Block");
         increaseIndent();
         for (int i = 0; i < block.stmts().size(); i++) {
             ST.Stmt s = block.stmts().get(i);
@@ -156,7 +156,7 @@ class PrinterST {
     private void print(ST.FuncStmt stmt, Pair<Integer, Integer> span) {
         String type = stmt.returnType().map(Object::toString).orElse("void");
         printNode("FuncStmt", span, "funcName=" + stmt.funcName(), "returnType=" + type);
-        
+
         increaseIndent();
         if (!stmt.paramList().isEmpty()) {
             printNode("Parameters");
@@ -166,7 +166,7 @@ class PrinterST {
             }
             decreaseIndent();
         }
-        
+
         print(stmt.block());
         decreaseIndent();
     }
@@ -193,7 +193,7 @@ class PrinterST {
         print(stmt.expr());
         decreaseIndent();
     }
-    
+
     private void print(ST.PrintStmt stmt, Pair<Integer, Integer> span) {
         printNode("PrintStmt", span);
         increaseIndent();
@@ -202,7 +202,7 @@ class PrinterST {
         }
         decreaseIndent();
     }
-    
+
     private void print(ST.FuncCallStmt stmt, Pair<Integer, Integer> span) {
         printNode("FuncCallStmt", span, "callIdent=" + stmt.callIdent());
         increaseIndent();
@@ -216,105 +216,105 @@ class PrinterST {
         }
         decreaseIndent();
     }
-    
+
     private void print(ST.ReturnStmt stmt, Pair<Integer, Integer> span) {
         printNode("ReturnStmt", span);
         increaseIndent();
         print(stmt.returnExpr());
         decreaseIndent();
     }
-    
+
     private void print(ST.IfStmt stmt, Pair<Integer, Integer> span) {
         printNode("IfStmt", span);
         increaseIndent();
-        
+
         printNode("Condition");
         increaseIndent();
         print(stmt.ifCond());
         decreaseIndent();
-        
+
         printNode("Then");
         increaseIndent();
         print(stmt.thenBlock());
         decreaseIndent();
-        
+
         stmt.elseBlock().ifPresent(elseBlock -> {
             printNode("Else");
             increaseIndent();
             print(elseBlock);
             decreaseIndent();
         });
-        
+
         decreaseIndent();
     }
-    
+
     private void print(ST.WhileStmt stmt, Pair<Integer, Integer> span) {
         printNode("WhileStmt", span);
         increaseIndent();
-        
+
         printNode("Condition");
         increaseIndent();
         print(stmt.whileCond());
         decreaseIndent();
-        
+
         printNode("Body");
         increaseIndent();
         print(stmt.block());
         decreaseIndent();
-        
+
         decreaseIndent();
     }
 
     private void print(ST.ForStmt stmt, Pair<Integer, Integer> span) {
         printNode("ForStmt", span, "forIdent=" + stmt.forIdent());
         increaseIndent();
-        
+
         printNode("Iterable");
         increaseIndent();
         print(stmt.iterable());
         decreaseIndent();
-        
+
         printNode("Body");
         increaseIndent();
         print(stmt.block());
         decreaseIndent();
-        
+
         decreaseIndent();
     }
 
     private void print(ST.SwitchStmt stmt, Pair<Integer, Integer> span) {
         printNode("SwitchStmt", span);
         increaseIndent();
-        
+
         printNode("Expression");
         increaseIndent();
         print(stmt.switchExpr());
         decreaseIndent();
-        
+
         printNode("Cases");
         increaseIndent();
         for (ST.CaseStmt c : stmt.cases()) {
             print(c);
         }
         decreaseIndent();
-        
+
         decreaseIndent();
     }
 
     private void print(ST.ValueCase stmt) {
         printNode("ValueCase");
         increaseIndent();
-        
+
         printNode("Comparator");
         increaseIndent();
         print(stmt.comparator());
         decreaseIndent();
-        
+
         printNode("Body");
         increaseIndent();
         print(stmt.block());
         decreaseIndent();
-        
+
         decreaseIndent();
     }
 
