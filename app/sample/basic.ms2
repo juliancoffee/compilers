@@ -61,11 +61,14 @@ func main() {
     // Використання switch
     let choice: Int = 2;
     switch choice {
-        case 0, 1 {
-            print("Choice is 0 or 1");
+        case 1 {
+            print("Choice is 1");
         }
-        case range(2, 4) {
+        case 2, 3 {
             print("Choice is 2 or 3");
+        }
+        case range(3, 6) {
+            print("3 =< choice < 6");
         }
         default {
             print("Choice is something else");

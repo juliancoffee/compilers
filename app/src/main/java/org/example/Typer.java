@@ -382,7 +382,7 @@ class Typer {
         IR.Scoped scopedThen = new IR.Scoped(
             IR.SCOPE_KIND.IF_BRANCH,
             new ArrayList<>(),
-            Optional.empty(),
+            Optional.of(this.toValue(stmt.ifCond(), span, scope)),
             thenScope
         );
         scope.entries().add(scopedThen);
@@ -414,9 +414,17 @@ class Typer {
         IR.Scope scope
     ) {
         IR.TY iterType;
+        IR.Value iterable;
         switch (stmt.iterable()) {
             case ST.RangeExpr(var from, var to, var step) -> {
                 iterType = IR.TY.INT;
+                iterable = new IR.Expr("$iterRange", new ArrayList<>(
+                    List.of(
+                        atomVar(IR.TY.INT, from.toString(), span),
+                        atomVar(IR.TY.INT, to.toString(), span),
+                        atomVar(IR.TY.INT, step.toString(), span)
+                    )
+                ));
             }
             case ST.Expression e -> {
                 var type = this.toType(e, span, scope);
@@ -428,6 +436,7 @@ class Typer {
                     );
                 }
                 iterType = IR.TY.STRING;
+                iterable = this.toValue(e, span, scope);
             }
         }
 
@@ -442,7 +451,7 @@ class Typer {
         IR.Scoped scopedFor = new IR.Scoped(
             IR.SCOPE_KIND.FOR,
             new ArrayList<>(List.of(forName)),
-            Optional.empty(),
+            Optional.of(iterable),
             forScope
         );
 
@@ -478,7 +487,7 @@ class Typer {
         IR.Scoped scopedWhile = new IR.Scoped(
             IR.SCOPE_KIND.WHILE,
             new ArrayList<>(),
-            Optional.empty(),
+            Optional.of(this.toValue(stmt.whileCond(), span, scope)),
             whileScope
         );
 
