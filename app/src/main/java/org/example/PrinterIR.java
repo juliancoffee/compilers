@@ -121,7 +121,7 @@ public class PrinterIR {
             .append("NewVar(name: ")
             .append(newVar.name())
             .append(", ")
-            .append(newVar.v())
+            .append(varToString(newVar.v()))
             .append(")\n");
     }
 
