@@ -777,7 +777,7 @@ public class Parser {
         log.debug("parse top stmt's list");
 
         while (this.numToken < tokenListLen + 1) {
-            var span = this.lastSpan();
+            var span = this.nextSpan();
             var stmt = this.parseTopStmt();
             var endSpan = this.lastSpan();
 
@@ -795,6 +795,11 @@ public class Parser {
     void backPair() {
         log.debug("[back again]");
         this.numToken -= 1;
+    }
+
+    Pair<Integer, Integer> nextSpan() {
+        var token = _tokenList.get(this.numToken);
+        return token.first();
     }
 
     Pair<Integer, Integer> lastSpan() {

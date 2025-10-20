@@ -237,6 +237,9 @@ func main() {
             code = """
 let pi: Double = 3.14;
 let flag: Bool = true;
+func add(a: Int, b: Int) -> Int {
+    return a + b;
+}
 func main() {
     // Використання switch
     let choice: Int = 2;
@@ -291,6 +294,9 @@ func main() {
             .registerTypeAdapter(Optional.class, new OptionalAdapter())
             .setPrettyPrinting()
             .create();
+        var printer = new PrinterST(lexer.lineIndex);
+        var prettytree = printer.print(parser.parseTree);
+        System.out.println(prettytree);
         // System.out.println(gson.toJson(parser.parseTree));
 
         var typer = new Typer(parser.parseTree, lexer.lineIndex);
@@ -302,9 +308,9 @@ func main() {
             // );
             throw e;
         }
-        System.out.println(gson.toJson(
-            IR.nullifyParentScopes(typer.ir.scope()))
-        );
+        // System.out.println(gson.toJson(
+        //     IR.nullifyParentScopes(typer.ir.scope()))
+        // );
     }
 }
 //./gradlew run --args="sample/basic.ms2"
