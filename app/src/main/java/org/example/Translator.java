@@ -208,7 +208,6 @@ public class Translator {
         for (int i = 0; i < scope.entries().size(); i++) {
             IR.Entry entry = scope.entries().get(i);
 
-            // Switch on the type of 'entry'
             switch (entry) {
                 case IR.NewVar newVar -> {
                     // this funcs local vars
@@ -290,11 +289,33 @@ public class Translator {
                 translateValue(expr.vars().getFirst().val(), module, scope);
                 module.addCode("RET", "RET");
             }
-            case "print" -> { // TODO print on 1 line
-                for (IR.Var var : expr.vars()) {
-                    translateValue(var.val(), module, scope);
-                    module.addCode("OUT", "out_op");
+            case "print" -> {
+                module.addCode("", "string");
+                for (IR.Var variable : expr.vars()) {
+                    translateValue(variable.val(), module, scope);
+                    switch (variable.type()) {
+                        case INT -> {
+                            module.addCode("i2s", "conv");
+                        }
+                        case FLOAT -> {
+                            module.addCode("f2s", "conv");
+                        }
+                        case BOOL -> {
+                            module.addCode("b2i", "conv");
+                            module.addCode("i2s", "conv");
+                        }
+                        case STRING -> {
+                            // no cast needed
+                        }
+                        case VOID -> {
+                            module.addCode("", "string");
+                        }
+                    }
+                    module.addCode("CAT", "cat_op");
+                    module.addCode(" ", "string");
+                    module.addCode("CAT", "cat_op");
                 }
+                module.addCode("OUT", "out_op");
             }
             default ->
                 // FuncCallStmt/ Expression

@@ -290,9 +290,10 @@ func main() {
     if flag == false {
         print("Flag is true and pi > 3");
     } else {
-        print("Condition not met");
+        print("Condition not met, flag = ", flag);
     }
     var result: Double = (pi + 2.0) * 3.0 / 2.0 - 1.0;
+    print("Result: ", result);
 }
 //""";
         }
