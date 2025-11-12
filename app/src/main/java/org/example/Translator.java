@@ -208,16 +208,18 @@ public class Translator {
         for (int i = 0; i < scope.entries().size(); i++) {
             IR.Entry entry = scope.entries().get(i);
 
-            if (entry instanceof IR.NewVar newVar) {
-                // this funcs local vars
-                module.addCode(newVar.name(), "l-val");
-                translateValue(newVar.v().val(), module, scope);
-                module.addCode(":=", "assign_op");
-
-            } else if (entry instanceof IR.Expr expr) {
-                translateAction(expr, module, scope);
-            } else if (entry instanceof IR.Scoped scoped) {
-                if (scoped.kind() == CASE_BRANCH) {
+            // Switch on the type of 'entry'
+            switch (entry) {
+                case IR.NewVar newVar -> {
+                    // this funcs local vars
+                    module.addCode(newVar.name(), "l-val");
+                    translateValue(newVar.v().val(), module, scope);
+                    module.addCode(":=", "assign_op");
+                }
+                case IR.Expr expr -> {
+                    translateAction(expr, module, scope);
+                }
+                case IR.Scoped scoped when scoped.kind() == CASE_BRANCH -> {
                     List<IR.Scoped> switchCases = new ArrayList<>();
                     switchCases.add(scoped);
 
@@ -235,8 +237,8 @@ public class Translator {
                     }
                     i = j - 1;
                     translateSwitch(switchCases, module, scope);
-
-                } else {
+                }
+                case IR.Scoped scoped -> {
                     translateScopedInstruction(scoped, module, scope, i);
                 }
             }
