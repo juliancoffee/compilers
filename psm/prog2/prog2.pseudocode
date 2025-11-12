@@ -1,0 +1,44 @@
+var x: int;
+var y: float;
+y = 3.43;
+print("Enter x: ");
+readLine(x);
+print(x*y - 2 + 10);
+if (x*y > 13){
+    print("x*y greater than 13");
+}
+else{
+    print("x*y less or equal 13");
+}
+while (x < y) {
+    print(x);
+    x = x - 1;
+    while (x < y) {
+        print(x);
+        x = x + 1;
+    }
+}
+
+var c: bool;
+var d: bool;
+c = true;
+d = false;
+if (c != d) {
+    print(2^8 - (-(20 + 2))/(4^3));
+    print(300000/45.);
+}
+
+var variable0101: int;
+variable0101 = 31;
+
+while (variable0101 > 28){
+    variable0101 = variable0101 - 1;
+}
+
+if (variable0101 <= 28){
+	variable0101 = variable0101 * 2;
+	if (variable0101 == 56) {
+		print(56);
+    }
+}
+// end of program

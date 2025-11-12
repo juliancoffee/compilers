@@ -1,0 +1,104 @@
+.target: Postfix Machine
+.version: 0.3
+
+.vars(
+	limit                   int
+	message                 string
+	current_sum             int
+	i                       int
+	processed_string_part   string
+	accumulated_output      string
+)
+
+.globVarList(
+	processing_active
+)
+
+.funcs(
+	process_item	string  3
+)
+
+.labels(
+	m1	11
+	m2	64
+	m3	45
+	m4  50
+)
+
+.code(
+    current_sum      l-val
+    0                int
+    =                assign_op
+    accumulated_output      l-val
+    ""               string
+    =                assign_op
+    i                l-val                     // for loop counter
+    1                int
+    =                assign_op
+    m1               label                     // for loop start
+    :                colon
+    i                r-val
+    limit            r-val
+    <=               rel_op
+    m2               label
+    JF               jf
+    current_sum      l-val                      // code inside the loop
+    current_sum      r-val
+    i                r-val
+    2                int
+    *                math_op
+    +                math_op
+    =                assign_op
+    processed_string_part       l-val
+    i                r-val
+    message          r-val
+    processing_active     r-val
+    process_item     CALL
+    =                assign_op
+    i                r-val
+    1                int
+    >                rel_op
+    m3               label
+    JF               jf
+    accumulated_output      l-val
+    accumulated_output      r-val
+    "; "             string
+    CAT              cat_op
+    processed_string_part       r-val
+    CAT              cat_op
+    =                assign_op
+    m4               label
+    JMP              jump
+    m3               label
+    :                colon
+    accumulated_output      l-val
+    processed_string_part   r-val
+    =                assign_op
+    m4               label
+    :                colon
+    "В циклі, і = "  string
+    i                r-val
+    i2s              conv
+    CAT              cat_op
+    OUT              out_op
+    i                l-val                      // for loop counter increment
+    i                r-val
+    1                int
+    +                math_op
+    =                assign_op
+    m1               label
+    JMP              jump
+    m2               label                      // for loop end
+    :                colon
+    "Final Sum: "    string
+    current_sum      r-val
+    i2s              conv
+    CAT              cat_op
+    ", Details: ["   string
+    CAT              cat_op
+    accumulated_output      r-val
+    CAT              cat_op
+    "]"              string
+    CAT              cat_op
+    RET
+)

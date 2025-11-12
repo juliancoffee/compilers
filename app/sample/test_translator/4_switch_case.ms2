@@ -1,0 +1,18 @@
+func main() {
+    var choice: Int = 0;
+
+    switch (choice) {
+        case 1, 5, 9 {
+            print("Обрано: Case of 1, 5, 9");
+        }
+        case range(10, 20) {
+            print("Обрано: Case in 10 to 20");
+        }
+        case 4 {
+            print("Обрано: Case of 4");
+        }
+        default {
+            print("Обрано: Default");
+        }
+    }
+}

@@ -5,6 +5,9 @@ let counter: Int = 0;
 func add(a: Int, b: Int) -> Int {
     return a + b;
 }
+func greetUser(name: String){
+    print("Hi", name);
+}
 
 func main() {
     print(greeting);
@@ -21,18 +24,18 @@ func main() {
     // Цикл while
     var counter = 0;
     while counter < 3 {
-        print("Counter = " + counter);
+        print("Counter = ", counter);
         counter = counter + 1;
     }
 
-
+    var flag = true;
+    var pi = 3.14;
     // Умовне розгалуження if-else
     if flag && (pi > 3.0) {
         print("Flag is true and pi > 3");
     } else {
         print("Condition not met");
     }
-
 
     // Використання switch
     let choice: Int = 2;
@@ -57,9 +60,11 @@ func main() {
     // Логічні вирази
     var isBig: Bool = sum > 25 && flag || !flag;
     print("isBig = ", isBig);
+
     let a: Int = 5;
     let b: Int = 10;
     if a == b {
         print("equal");
     }
+
 }

@@ -1,0 +1,85 @@
+.target: Postfix Machine
+.version: 0.3
+
+.vars(
+	max_iterations	    int
+	initial_message	    string
+	processing_active   bool
+	final_output        string
+	i                   int
+	current_sum         int
+)
+
+.funcs(
+	process_item	string  3
+    perform_complex_calculation     string 2
+)
+
+.code(
+    max_iterations        l-val
+    5                     int
+    =                     assign_op
+    initial_message       l-val
+    "Step"                string
+    =                     assign_op
+    processing_active     l-val
+    TRUE                  bool
+    =                     assign_op
+    i                     l-val
+    100                   int
+    =                     assign_op
+    current_sum           l-val
+    -999                  int
+    =                     assign_op
+    final_output          l-val
+    max_iterations        r-val
+    initial_message       r-val
+    perform_complex_calculation     CALL
+    =                     assign_op
+    "--- Перший запуск ---"  string
+    OUT                   out_op
+    "Глобальна i після виклику: " string
+    i                     r-val
+    i2s                   conv
+    CAT                   cat_op
+    OUT                   out_op
+    "Глобальна current_sum після виклику: " string
+    current_sum           r-val
+    i2s                   conv
+    CAT                   cat_op
+    OUT                   out_op
+    "Результат обробки: " string
+    final_output          r-val
+    CAT                   cat_op
+    OUT                   out_op
+    max_iterations        l-val
+    3                     int
+    =                     assign_op
+    initial_message       l-val
+    "Retry"               string
+    =                     assign_op
+    processing_active     l-val
+    FALSE                 bool
+    =                     assign_op
+    final_output          l-val
+    max_iterations        r-val
+    initial_message       r-val
+    perform_complex_calculation     CALL
+    =                     assign_op
+    "--- Другий запуск ---"  string
+    OUT                   out_op
+    "Глобальна i після виклику: " string
+    i                     r-val
+    i2s                   conv
+    CAT                   cat_op
+    OUT                   out_op
+    "Глобальна current_sum після виклику: " string
+    current_sum           r-val
+    i2s                   conv
+    CAT                   cat_op
+    OUT                   out_op
+    "Результат обробки: " string
+    final_output          r-val
+    CAT                   cat_op
+    OUT                   out_op
+)

@@ -3,6 +3,7 @@ package org.example;
 import java.util.*;
 import java.text.MessageFormat;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -305,11 +306,28 @@ class Typer {
                             "variable was defined at " + formatSpan(tgt.span())
                         );
                     }
+//                    var action = new IR.Expr("$assign", new ArrayList<>(
+//                        List.of(
+//                            tgt,
+//                            this.toVar(expr, span, scope)
+//                        )
+//                    ));
+//                    scope.entries().add(action);
+
+                    //  new IR.Var for the l-val using this reference
+                    var targetRefValue = new IR.Ref(ident);
+                    var targetRefVar = new IR.Var(
+                            targetRefValue, // Ref(ident)
+                            tgt.type(),
+                            tgt.span(),
+                            true
+                    );
+
                     var action = new IR.Expr("$assign", new ArrayList<>(
-                        List.of(
-                            tgt,
-                            this.toVar(expr, span, scope)
-                        )
+                            List.of(
+                                    targetRefVar, // IR.Var with IR.Ref
+                                    this.toVar(expr, span, scope)
+                            )
                     ));
                     scope.entries().add(action);
                 }
@@ -715,6 +733,28 @@ class Typer {
             newScope.varMapping().put(p.first(), arg);
         }
         this.typeCheckBlock(stmt.block(), newScope);
+        boolean hasReturn = newScope.entries().stream()
+                .flatMap(e -> {
+                    if (e instanceof IR.Expr expr && expr.op().equals("$return")) {
+                        return Stream.of(expr);
+                    }
+                    if (e instanceof IR.Scoped innerScope) {
+                        return innerScope.scope().entries().stream()
+                                .filter(x -> x instanceof IR.Expr ex && ex.op().equals("$return"));
+                    }
+                    return Stream.empty();
+                })
+                .findAny()
+                .isPresent();
+
+        if (returnType != IR.TY.VOID && !hasReturn) {
+            throw fail(
+                    span,
+                    "missing return statement",
+                    "function " + name + " must return " + returnType
+            );
+        }
+
     }
 
 

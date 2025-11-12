@@ -1,0 +1,5 @@
+// Присвоєння до константи (let)
+let value: Int = 10;
+func main() {
+    value = 5;
+}

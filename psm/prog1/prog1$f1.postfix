@@ -1,0 +1,34 @@
+.target: Postfix Machine
+.version: 0.3
+
+.vars(
+	x1	int                    // parameters are listed on top of the vars section
+    y1	int                    // in order of declaration
+    c   float
+)
+
+.globVarList(
+	a
+)
+
+.funcs(
+	f1$f2   int   1
+)
+
+.code(
+    c       l-val
+    -8.3    float
+    =       assign_op
+	c	    l-val
+	x1	    r-val
+    y1	    r-val
+    *       math_op
+    a       r-val
+    i2f     conv
+	f1$f2   CALL
+    +	    math_op
+    i2f     conv
+    =	    assign_op
+    c       r-val
+    RET
+)

@@ -207,11 +207,11 @@ public record IR(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
         ))));
-
+// TODO str?
         map.put(">=", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
-                new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL),
-                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
+                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL)
         ))));
 
         // --- Equality Operators ---

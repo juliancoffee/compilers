@@ -15,3 +15,7 @@ build
 
 # .env files
 .env
+
+# patch files and zips
+*.patch
+*.zip

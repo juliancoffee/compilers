@@ -1,0 +1,7 @@
+//Відсутній return у функції, що має тип
+func f() -> Int {
+    var x = 10;
+}
+func main() {
+   var x = f();
+}

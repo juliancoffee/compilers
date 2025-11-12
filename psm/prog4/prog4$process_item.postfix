@@ -1,0 +1,70 @@
+.target: Postfix Machine
+.version: 0.3
+
+.vars(
+	value	        int
+	text	        string
+	state           bool
+	temp_result     string
+	is_value_even   bool
+)
+
+.labels(
+	m1	24
+	m2	40
+	m3	47
+)
+
+.code(
+    is_value_even    l-val
+    value            r-val
+    2                int
+    %                math_op
+    0                int
+    ==               rel_op
+    =                assign_op
+    state            r-val
+    is_value_even    r-val
+    AND              bool_op
+    m1               label
+    JF               jf
+    temp_result      l-val
+    "Processed_Even_"   string
+    text             r-val
+    CAT              cat_op
+    "_"              string
+    CAT              cat_op
+    value            r-val
+    i2s              conv
+    CAT              cat_op
+    =                assign_op
+    m3               label
+    JMP              jump
+    m1               label
+    :                colon
+    state            r-val
+    NOT              bool_op
+    is_value_even    r-val
+    NOT              bool_op
+    AND              bool_op
+    m2               label
+    JF               jf
+    temp_result      l-val
+    "Processed_Odd_Inactive_"   string
+    text             r-val
+    CAT              cat_op
+    =                assign_op
+    m3               label
+    JMP              jump
+    m2               label
+    :                colon
+    temp_result      l-val
+    "Processed_Mixed_"   string
+    text             r-val
+    CAT              cat_op
+    =                assign_op
+    m3               label
+    :                colon
+    temp_result      r-val
+    RET
+)

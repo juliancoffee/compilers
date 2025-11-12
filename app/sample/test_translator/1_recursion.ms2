@@ -1,0 +1,16 @@
+let maxCount: Int = 5;
+
+func factorial(n: Int) -> Int {
+    if n <= 1 {
+        return 1;
+    }
+    if n > maxCount {
+        return 0;
+    }
+    return n * factorial(n - 1);
+}
+func main() {
+    let num: Int = 5;
+    let result = factorial(num);
+    print("Факторіал ", num, ": ", result);
+}

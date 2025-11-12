@@ -1,0 +1,8 @@
+// Невідповідність типів аргументів функції
+func printBool(b: Bool) {
+    print(b);
+}
+
+func main() {
+    printBool(123);
+}

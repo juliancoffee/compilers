@@ -68,6 +68,10 @@ tasks.withType(JavaCompile) {
     options.compilerArgs << '-Xlint:unchecked'
     options.deprecation = true
 }
+tasks.named('run') {
+    standardInput = System.in
+}
+
 
 // Apply a specific Java toolchain to ease working on different environments.
 java {
