@@ -1,0 +1,17 @@
+func main() {
+    var counter = 0.0;
+    let limit = 10.0;
+
+    let remainder = 11.0 / 2.0 - 5.0;
+    print("Залишок: ", remainder);   // 0.5
+
+    print("Парні числа: ");
+    while (counter <= limit) {
+        if (counter == 0.0) {
+            print("Початок циклу");
+        } else {
+            print(counter);
+        }
+        counter = counter + 2.0;
+    }
+}

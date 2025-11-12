@@ -1,0 +1,5 @@
+// Некоректний return тип
+func wrongReturn() -> Int {
+    return "oops";
+}
+

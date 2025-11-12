@@ -1,0 +1,8 @@
+// Некоректна кількість аргументів
+func add(a: Int, b: Int) -> Int {
+    return a + b;
+}
+
+func main() {
+    let res = add(10);
+}

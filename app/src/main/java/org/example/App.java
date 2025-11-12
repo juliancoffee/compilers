@@ -8,6 +8,8 @@ import java.nio.file.Paths;
 import com.google.gson.GsonBuilder;
 import java.util.*;
 
+import static utils.AnsiColors.*;
+
 class App {
     private static void printTokenTable(
         TreeMap<Pair<Integer, Integer>, Token> tokenTable,
@@ -88,19 +90,6 @@ class App {
     /*
      * ANSI escape codes for colors
      */
-    public static final String ANSI_RESET = "\u001B[0m";
-    public static final String ANSI_RED = "\u001B[31m";
-    public static final String ANSI_GREEN = "\u001B[32m";
-    public static final String ANSI_YELLOW = "\u001B[33m";
-    public static final String ANSI_BLUE = "\u001B[34m";
-    public static final String ANSI_PURPLE = "\u001B[35m";
-    public static final String ANSI_CYAN = "\u001B[36m";
-    public static final String ANSI_WHITE = "\u001B[37m";
-    /*
-     * ANSI escape code for special effects
-     */
-    public static final String ANSI_UNDERLINE = "\u001b[4m";
-    public static final String ANSI_RED_BACK = "\u001b[41m";
 
     private static String getColorForToken(Token token) {
         return switch (token) {
@@ -179,61 +168,101 @@ class App {
 let y = 5 + 6;
 func noop() -> Void {
     let x = 5;
-    x = 06;
-    printPi();
-    printSum(x, y);
+//    printPi();
+//    printSum(x, y);
     print(x, y);
 }
-func1(x+func2(5));
-""";
-            code = """
-let x = 1 + 2 * 3 + 4;
-""";
-            code = """
-func noop() -> Void {}
-func simpleNoop() {}
-func getName() -> String { return input(); }
-func sumSquared(x: Double, y: Double) -> String { return x * x + y * y; }
-""";
-            code = """
-let x = square(1 + square(2));
-""";
-            code = """
-func main() {
-    let x = 5;
-    x = 6;
-
-    // Цикл for з range
-    for i in range(0, 5, 1) {
-        print("For loop iteration: ", i);
+let fix = false;
+func main(){
+    var counter = 0;
+    let counter2 = 0;
+    while counter < 5  {
+        print("Counter = ", counter);
+        counter = counter + 1;
+        if counter < 0{
+            print(counter);
+        }else{
+           print(counter+10);
+        }
     }
-
-    // Цикл for з range
-    for c in "hello" {
-        print("For loop iteration: ", c);
-    }
+    counter = counter - 2;
 }
 """;
             code = """
+let y: Bool = false;
+
+func oneF(x: String)->String{
+    var one = "hello";
+    one = one + x;
+    print(y);
+    return one;
+}
 func main() {
-    //while without relops
+    let x = 1+2**3**4;
+    if x > 0.0{
+        print(x);
+    }else{
+       print(x+10);
+    }
+    if x != 0.0{
+        print(x);
+    }
+    var two = "x_fake";
+    print(oneF(two));
+
     var counter = 0;
-    while counter {
-        print("Counter = " + counter);
+    while counter < 5  {
+        print("Counter = ", counter);
         counter = counter + 1;
     }
 }
-""";//TODO relops
-            code = """
-    func main() {
-        // Умовне розгалуження if-else
-        if flag {
-            print("Flag is true and pi > 3");
-        } else {
-            print("Condition not met");
-        }
-    }
 """;
+////            code = """
+//func noop() -> Void {}
+//func simpleNoop() {}
+//func getName() -> String { return input(); }
+//func sumSquared(x: Double, y: Double) -> String { return x * x + y * y; }
+//""";
+//            code = """
+//let x = square(1 + square(2));
+//""";
+//            code = """
+//    let x = 5;
+//
+//func main() {
+//    var y = "input()"+"hello";
+//
+//    // Цикл for з range
+//    for i in range(0, 6, 1) {
+//        print("For loop iteration: ", i);
+//    }
+//
+//    // Цикл for з str
+//    for c in "hello" {
+//        print("For loop iteration: ", c);
+//    }
+//}
+//""";
+//            code = """
+//let flag: Bool = true;
+//func add(a: Int, b: Int) -> Int {
+//    return -a + b;
+//}
+//func main() {
+//    var sum: Int = add(10, 20);
+//    print("Sum = ", sum);
+//
+//
+//    // Логічні вирази
+//    var isBig: Bool = sum > 25 && flag || !flag;
+//    print("isBig = ", isBig);
+//    let a: Int = 5;
+//    let b: Int = 10;
+//    if a != b {
+//        print("equal");
+//    }
+//}
+//////////""";
             code = """
 let pi: Double = 3.14;
 let flag: Bool = true;
@@ -242,12 +271,15 @@ func add(a: Int, b: Int) -> Int {
 }
 func main() {
     // Використання switch
-    let choice: Int = 2;
+    let choice: Int = 3;
     switch choice {
+        case 5, 4, 6 {
+            print("Choice is 5 or 4 or 6");
+        }
         case 1 {
             print("Choice is 1");
         }
-        case range(2, 4) {
+        case range(0, 3) {
             print("Choice is 2 or 3");
         }
         default {
@@ -261,62 +293,80 @@ func main() {
     }
     var result: Double = (pi + 2.0) * 3.0 / 2.0 - 1.0;
 }
-""";
+//""";
         }
 
         var lexer = new Lexer(code);
-
         try {
             lexer.lex();
-            System.out.println("\nFile was lexed successfully!");
+            System.out.println("\nЛексичний аналіз завершено успішно");
         } catch (RuntimeException e) {
-            System.out.println("\nLexer has failed!");
-            System.err.println(e);
+            System.out.println("\nПомилка під час лексичного аналізу");
+            System.err.println(e.getMessage());
+            return; // зупинка якщо лексер впав
         }
 
         printTokenTable(lexer.tokenTable, lexer.lineIndex);
         System.out.println("\nColorized output:");
         colorizeAndPrint(code, lexer.tokenTable);
 
+        // СИНТАКСИЧНИЙ АНАЛІЗ
         var parser = new Parser(lexer.tokenTable, lexer.lineIndex);
         try {
             parser.parse();
+            System.out.println("\nСинтаксичний аналіз завершено успішно");
         } catch (RuntimeException e) {
-            System.err.println("\nParser has failed!");
+            System.out.println("\nПомилка під час синтаксичного аналізу");
             if (parser.biggestError().isPresent()) {
                 System.err.println(parser.biggestError().get());
             } else {
-                System.err.println(e);
+                System.err.println(e.getMessage());
             }
+            return;
         }
 
         var gson = new GsonBuilder()
-            .registerTypeAdapter(Optional.class, new OptionalAdapter())
-            .setPrettyPrinting()
-            .create();
+                .registerTypeAdapter(Optional.class, new OptionalAdapter())
+                .setPrettyPrinting()
+                .create();
+
         var printer = new PrinterST(lexer.lineIndex);
         var prettytree = printer.print(parser.parseTree);
         System.out.println(prettytree);
-        // System.out.println(gson.toJson(parser.parseTree));
 
+        // СЕМАНТИЧНИЙ АНАЛІЗ
         var typer = new Typer(parser.parseTree, lexer.lineIndex);
         var printerIR = new PrinterIR(lexer.lineIndex);
         try {
             typer.typecheck();
+            System.out.println("\nСемантичний аналіз завершено успішно");
         } catch (RuntimeException e) {
+            System.out.println("\nПомилка під час семантичного аналізу");
             var prettyrep = printerIR.print(typer.ir);
-            // System.err.println(gson.toJson(
-            //     IR.nullifyParentScopes(typer.ir.scope()))
-            // );
-            throw e;
+            System.err.println(prettyrep);
+            System.err.println(e.getMessage());
+            return;
         }
+
         var prettyrep = printerIR.print(typer.ir);
         System.out.println(prettyrep);
-        // System.out.println(gson.toJson(
-        //     IR.nullifyParentScopes(typer.ir.scope()))
-        // );
+        System.out.println("\nПрограма пройшла всі етапи аналізу успішно!");
+
+        // ГЕНЕРАЦІЯ POSTFIX
+        var translator = new Translator(typer.ir);
+        String outputDir = "sample/postfix";
+        String mainModule = "main";
+        try {
+            translator.generate(outputDir);
+            System.out.println("\nГенерація postfix коду завершена успішно!");
+        } catch (IOException e) {
+            System.err.println("\nПомилка під час генерації postfix коду: " + e.getMessage());
+            return;
+        }
+
     }
 }
 //./gradlew run --args="sample/basic.ms2"
 //./gradlew run
 //./gradlew run --args="sample/test_errors/01_missing_terminal.ms2"
+// python3 psm.py -p app/sample/postfix -m main

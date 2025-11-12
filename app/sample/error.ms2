@@ -1,0 +1,7 @@
+let a = 5;
+func addA(b: Int) -> Int {
+    while true {
+        let z = a;
+    }
+    return a + b;
+}

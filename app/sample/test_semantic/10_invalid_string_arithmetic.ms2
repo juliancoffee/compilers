@@ -1,0 +1,5 @@
+// Арифметика над рядками
+func main() {
+    let x: String = "Hello";
+    let y = x + 5;
+}
