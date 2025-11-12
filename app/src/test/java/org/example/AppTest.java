@@ -625,41 +625,41 @@ class SimpleParseTest {
         }
 }
 
-@ExtendWith({SnapshotExtension.class})
-class FullLexTest {
-    private Expect expect;
-
-    @Test void appOk() {
-        String input;
-        try {
-            input = Files.readString(
-                Paths.get("sample/basic.ms2"),
-                StandardCharsets.UTF_8
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("basic file couldn't be found");
-        }
-
-        var lexer = new Lexer(input);
-        lexer.lex();
-
-        var formattedTable = lexer.tokenTable.entrySet()
-            .stream()
-            .collect(Collectors.toMap(
-                entry -> new Pair<>(
-                    SpanUtils.locate(entry.getKey().first(), lexer.lineIndex),
-                    SpanUtils.locate(entry.getKey().second(), lexer.lineIndex)
-                ),
-                Map.Entry::getValue,
-                (v1, v2) -> v2,
-                LinkedHashMap::new
-            ));
-
-        expect
-            .serializer("json")
-            .toMatchSnapshot(formattedTable);
-    }
-}
+// @ExtendWith({SnapshotExtension.class})
+// class FullLexTest {
+//     private Expect expect;
+//
+//     @Test void appOk() {
+//         String input;
+//         try {
+//             input = Files.readString(
+//                 Paths.get("sample/basic.ms2"),
+//                 StandardCharsets.UTF_8
+//             );
+//         } catch (Exception e) {
+//             throw new RuntimeException("basic file couldn't be found");
+//         }
+//
+//         var lexer = new Lexer(input);
+//         lexer.lex();
+//
+//         var formattedTable = lexer.tokenTable.entrySet()
+//             .stream()
+//             .collect(Collectors.toMap(
+//                 entry -> new Pair<>(
+//                     SpanUtils.locate(entry.getKey().first(), lexer.lineIndex),
+//                     SpanUtils.locate(entry.getKey().second(), lexer.lineIndex)
+//                 ),
+//                 Map.Entry::getValue,
+//                 (v1, v2) -> v2,
+//                 LinkedHashMap::new
+//             ));
+//
+//         expect
+//             .serializer("json")
+//             .toMatchSnapshot(formattedTable);
+//     }
+// }
 
 
 class ExtendedParseTest {

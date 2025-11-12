@@ -264,28 +264,29 @@ func main() {
 //}
 //////////""";
             code = """
-let pi: Double = 3.14;
-let flag: Bool = true;
 func add(a: Int, b: Int) -> Int {
     return a + b;
 }
 func main() {
     // Використання switch
-    let choice: Int = 3;
-    switch choice {
-        case 5, 4, 6 {
-            print("Choice is 5 or 4 or 6");
-        }
-        case 1 {
-            print("Choice is 1");
-        }
-        case range(0, 3) {
-            print("Choice is 2 or 3");
-        }
-        default {
-            print("Choice is something else");
-        }
-    }
+    // let choice: Int = 3;
+    // switch choice {
+    //     case 5, 4, 6 {
+    //         print("Choice is 5 or 4 or 6");
+    //     }
+    //     case 1 {
+    //         print("Choice is 1");
+    //     }
+    //     case range(0, 3) {
+    //         print("Choice is 2 or 3");
+    //     }
+    //     default {
+    //         print("Choice is something else");
+    //     }
+    // }
+
+    let pi: Double = 3.14;
+    let flag: Bool = true;
     if flag == false {
         print("Flag is true and pi > 3");
     } else {

@@ -1,6 +1,7 @@
 package org.example;
 
 import java.util.*;
+import java.io.File;
 import java.io.IOException;
 
 import static org.example.IR.SCOPE_KIND.CASE_BRANCH;
@@ -37,9 +38,15 @@ public class Translator {
                 if (!newVar.v().mutable()) {
                     currentlyVisibleGlobalVars.add(newVar.name());
                 }
-            } else if (entry instanceof IR.Scoped scoped && scoped.kind() == IR.SCOPE_KIND.FUN) {
+            } else if (
+                entry instanceof IR.Scoped scoped
+                    && scoped.kind() == IR.SCOPE_KIND.FUN
+            ) {
                 String funcName = scoped.scope().funcName();
-                String moduleName = funcName.equals("main") ? "main" : "main$" + funcName;
+                String moduleName =
+                    funcName.equals("main")
+                        ? "main"
+                        : "main$" + funcName;
                 PostfixModule module = new PostfixModule(moduleName);
                 allModules.put(moduleName, module);
 
@@ -79,17 +86,32 @@ public class Translator {
             }
         }
 
+        // clear output directory beforehand
+        var dir = new File(baseDir);
+        var entries = dir.list();
+        for (String s : entries) {
+            File oldFile = new File(dir.getPath(), s);
+            oldFile.delete();
+        }
+
+        // write all modules
         for (PostfixModule module : allModules.values()) {
             module.writeToFile(baseDir);
             printModuleInfo(module);
         }
     }
+
     /**
      * Translates the main scope of the program into Postfix code.
      * Handles initialization of global variables, local variable declarations,
      * and executes all statements in the main block (including nested structures).
      */
-    private void translateMainScope(IR.Scope mainScope, PostfixModule module, IR.Scope rootScope, List<IR.Entry> globalEntries) {
+    private void translateMainScope(
+        IR.Scope mainScope,
+        PostfixModule module,
+        IR.Scope rootScope,
+        List<IR.Entry> globalEntries
+    ) {
 
         // init global let     here?
         for (IR.Entry entry : globalEntries) {
@@ -105,9 +127,15 @@ public class Translator {
         // local .vars
         for (Map.Entry<String, IR.Var> entry : mainScope.varMapping().entrySet()) {
             if (entry.getValue().val() instanceof IR.Arg) {
-                module.variables.put(entry.getKey(), entry.getValue().type().toString().toLowerCase());
+                module.variables.put(
+                    entry.getKey(),
+                    entry.getValue().type().toString().toLowerCase()
+                );
             } else {
-                module.variables.put(entry.getKey(), entry.getValue().type().toString().toLowerCase());
+                module.variables.put(
+                    entry.getKey(),
+                    entry.getValue().type().toString().toLowerCase()
+                );
             }
         }
 
@@ -116,7 +144,11 @@ public class Translator {
 
             if (entry instanceof IR.NewVar newVar) {
                 // ignore global let (bc already init-ed)
-                boolean isGlobalLet = rootScope.varMapping().containsKey(newVar.name()) && !newVar.v().mutable();
+                boolean isGlobalLet = rootScope
+                    .varMapping()
+                    .containsKey(newVar.name())
+                    && !newVar.v().mutable();
+
                 if (isGlobalLet) {
                     continue;
                 }
@@ -135,9 +167,13 @@ public class Translator {
 
                     // look for all CASE_BRANCH
                     int j = i + 1;
-                    while (j < mainScope.entries().size() &&
-                            mainScope.entries().get(j) instanceof IR.Scoped nextScoped &&
-                            (nextScoped.kind() == CASE_BRANCH))
+                    while (
+                        j < mainScope.entries().size()
+                        &&
+                        mainScope.entries().get(j) instanceof IR.Scoped nextScoped
+                        &&
+                        (nextScoped.kind() == CASE_BRANCH)
+                    )
                     {
                         switchCases.add(nextScoped);
                         j++;
@@ -157,11 +193,18 @@ public class Translator {
         // local .vars
         for (Map.Entry<String, IR.Var> entry : scope.varMapping().entrySet()) {
             if (entry.getValue().val() instanceof IR.Arg) {
-                module.variables.put(entry.getKey(), entry.getValue().type().toString().toLowerCase());
+                module.variables.put(
+                    entry.getKey(),
+                    entry.getValue().type().toString().toLowerCase()
+                );
             } else if (entry.getValue().mutable()) {
-                module.variables.put(entry.getKey(), entry.getValue().type().toString().toLowerCase());
+                module.variables.put(
+                    entry.getKey(),
+                    entry.getValue().type().toString().toLowerCase()
+                );
             }
         }
+
         for (int i = 0; i < scope.entries().size(); i++) {
             IR.Entry entry = scope.entries().get(i);
 
@@ -180,9 +223,12 @@ public class Translator {
 
                     // look for all CASE_BRANCH
                     int j = i + 1;
-                    while (j < scope.entries().size() &&
-                            scope.entries().get(j) instanceof IR.Scoped nextScoped &&
-                            (nextScoped.kind() == CASE_BRANCH))
+                    while (
+                        j < scope.entries().size()
+                        &&
+                        scope.entries().get(j) instanceof IR.Scoped nextScoped
+                        &&
+                        (nextScoped.kind() == CASE_BRANCH))
                     {
                         switchCases.add(nextScoped);
                         j++;
@@ -196,22 +242,30 @@ public class Translator {
             }
         }
     }
+
     /**
      * Recursively collects all variables (including those born in nested scopes like WHILE or IF blocks)
      */
     private void collectAllVars(IR.Scope scope, PostfixModule module) {
         for (Map.Entry<String, IR.Var> entry : scope.varMapping().entrySet()) {
-            module.variables.putIfAbsent(entry.getKey(), entry.getValue().type().toString().toLowerCase());
+            module.variables.putIfAbsent(
+                entry.getKey(),
+                entry.getValue().type().toString().toLowerCase()
+            );
         }
 
         for (IR.Entry entry : scope.entries()) {
             if (entry instanceof IR.NewVar newVar) {
-                module.variables.putIfAbsent(newVar.name(), newVar.v().type().toString().toLowerCase());
+                module.variables.putIfAbsent(
+                    newVar.name(),
+                    newVar.v().type().toString().toLowerCase()
+                );
             } else if (entry instanceof IR.Scoped scopedEntry) {
                 collectAllVars(scopedEntry.scope(), module);
             }
         }
     }
+
     /**
      * Translates a single action or expression (e.g. assignment, print, return)
      * into Postfix instructions.
@@ -221,7 +275,12 @@ public class Translator {
             case "$assign" -> {
                 IR.Var target = expr.vars().get(0);
                 IR.Var value = expr.vars().get(1);
-                module.addCode(target.val() instanceof IR.Ref ref ? ref.ident() : "", "l-val");
+                module.addCode(
+                    target.val() instanceof IR.Ref ref
+                        ? ref.ident()
+                        : "",
+                    "l-val"
+                );
                 translateValue(value.val(), module, scope);
                 module.addCode(":=", "assign_op");
             }
@@ -246,13 +305,18 @@ public class Translator {
      * Identifies matching ELSE branches
      * CASE branches was grouped in translateScope and translateMainScope.
      */
-    private void translateScopedInstruction(IR.Scoped scoped, PostfixModule module, IR.Scope scope, int index) {
+    private void translateScopedInstruction(
+        IR.Scoped scoped, PostfixModule module, IR.Scope scope, int index
+    ) {
         switch (scoped.kind()) {
             case IF_BRANCH -> {
                 // look for ELSE_BRANCH
                 IR.Scoped elseBranch = scope.entries().stream()
                         .skip(index + 1)
-                        .filter(e -> e instanceof IR.Scoped nextScoped && nextScoped.kind() == IR.SCOPE_KIND.ELSE_BRANCH)
+                        .filter(
+                            e -> e instanceof IR.Scoped nextScoped
+                                && nextScoped.kind() == IR.SCOPE_KIND.ELSE_BRANCH
+                        )
                         .map(e -> (IR.Scoped) e)
                         .findFirst().orElse(null);
 
@@ -264,10 +328,15 @@ public class Translator {
             default -> {}
         }
     }
+
     /**
      * Translates a value (atom, variable reference, or expression)
      */
-    private void translateValue(IR.Value value, PostfixModule module, IR.Scope scope) {
+    private void translateValue(
+        IR.Value value,
+        PostfixModule module,
+        IR.Scope scope
+    ) {
         if (value instanceof IR.Atom atom) {
             module.addCode(atom.val(), atom.type().toString().toLowerCase());
             return;
@@ -297,17 +366,22 @@ public class Translator {
             module.addCode(op, token);
         }
     }
+
     /**
      * Automatically casts arguments to FLOAT if needed
      */
-    private void translateExprArgs(IR.Expr expr, PostfixModule module, IR.Scope scope) {
+    private void translateExprArgs(
+        IR.Expr expr, PostfixModule module, IR.Scope scope
+    ) {
         String op = expr.op();
-        boolean isMath = "+-*/**".contains(op);
+        boolean isMath = List.of("+", "-", "*", "/", "**").contains(op);
 
         boolean toFloat = "**".equals(op) ||
-                (isMath && expr.vars().stream().anyMatch(v ->
-                        v.type() == IR.TY.FLOAT ||
-                                (v.val() instanceof IR.Expr e && "**".equals(e.op()))
+                (isMath
+                    && expr.vars().stream().anyMatch(v ->
+                        v.type() == IR.TY.FLOAT
+                            ||
+                        (v.val() instanceof IR.Expr e && "**".equals(e.op()))
                 ));
 
         if (toFloat) {
@@ -330,12 +404,14 @@ public class Translator {
 
         String token = switch (op) {
             case "+", "-", "*", "/", "%" -> {
-                boolean cat = op.equals("+") &&
+                boolean concat = op.equals("+") &&
                         expr.vars().size() == 2 &&
                         expr.vars().get(0).type() == IR.TY.STRING &&
                         expr.vars().get(1).type() == IR.TY.STRING;
-                if (cat) op = "CAT";
-                yield cat ? "cat_op" : "math_op";
+                if (concat) {
+                    op = "CAT";
+                }
+                yield concat ? "cat_op" : "math_op";
             }
             case "**" -> {
                 op = "^";
@@ -366,7 +442,12 @@ public class Translator {
     /**
      * Translates operands and inserts an implicit type conversion instruction (i2f conv)
      */
-    private void translateWithCast(List<IR.Var> vars, PostfixModule module, IR.Scope scope, IR.TY targetType) {
+    private void translateWithCast(
+        List<IR.Var> vars,
+        PostfixModule module,
+        IR.Scope scope,
+        IR.TY targetType
+    ) {
         for (IR.Var arg : vars) {
             translateValue(arg.val(), module, scope);
 
@@ -378,10 +459,17 @@ public class Translator {
 
 
     //  IfStmt
-    private void translateIfStmt(IR.Scoped thenScoped, PostfixModule module, IR.Scope parentScope, IR.Scoped elseScoped){
+    private void translateIfStmt(
+        IR.Scoped thenScoped,
+        PostfixModule module,
+        IR.Scope parentScope,
+        IR.Scoped elseScoped
+    ) {
         // cond
         if (thenScoped.dependencyValue().isEmpty()) {
-            throw new IllegalStateException("IF_BRANCH Scoped must contain condition (dependencyValue)");
+            throw new IllegalStateException(
+                "IF_BRANCH Scoped must contain condition (dependencyValue)"
+            );
         }
         translateValue(thenScoped.dependencyValue().get(), module, parentScope);
 
@@ -419,7 +507,9 @@ public class Translator {
     }
 
     // WhileStmt
-    private void translateWhileStmt(IR.Scoped scopedEntry, PostfixModule module, IR.Scope parentScope) {
+    private void translateWhileStmt(
+        IR.Scoped scopedEntry, PostfixModule module, IR.Scope parentScope
+    ) {
         String labelLoop = module.createLabel();
         String labelEnd = module.createLabel();
 
@@ -442,10 +532,15 @@ public class Translator {
         module.addCode(labelEnd, "label");
         module.addCode(":", "colon");
     }
+
     // ForStmt
-    private void translateForStmt(IR.Scoped scopedEntry, PostfixModule module, IR.Scope parentScope) {
+    private void translateForStmt(
+        IR.Scoped scopedEntry, PostfixModule module, IR.Scope parentScope
+    ) {
         if (scopedEntry.dependencyValue().isEmpty()) {
-            throw new IllegalStateException("FOR Scoped must contain iterable definition.");
+            throw new IllegalStateException(
+                "FOR Scoped must contain iterable definition."
+            );
         }
 
         String iterVar = scopedEntry.bornVars().getFirst();
@@ -493,16 +588,24 @@ public class Translator {
             module.addCode(labelEnd, "label");
             module.addCode(":", "colon");
 
-        } else if (iterable instanceof IR.Atom || iterable instanceof IR.Ref || iterable instanceof IR.Expr) {
+        } else if (
+            iterable instanceof IR.Atom
+            || iterable instanceof IR.Ref
+            || iterable instanceof IR.Expr
+        ) {
             // TODO for str
 
         }  else {
-            throw new IllegalArgumentException("Unsupported iterable for FOR loop.");
+            throw new IllegalArgumentException(
+                "Unsupported iterable for FOR loop."
+            );
         }
     }
 
     // SwitchStmt
-    private void translateSwitch(List<IR.Scoped> cases, PostfixModule module, IR.Scope parentScope) {
+    private void translateSwitch(
+        List<IR.Scoped> cases, PostfixModule module, IR.Scope parentScope
+    ) {
         String labelEnd = module.createLabel();
 
         for (int i = 0; i < cases.size(); i++) {
@@ -512,8 +615,11 @@ public class Translator {
                     ? module.createLabel()
                     : labelEnd;
 
-            if (caseScoped.dependencyValue().isPresent()) {// $caseIs/Of/In condition
-                translateValue(caseScoped.dependencyValue().get(), module, parentScope);
+            // $caseIs/Of/In condition
+            if (caseScoped.dependencyValue().isPresent()) {
+                translateValue(
+                    caseScoped.dependencyValue().get(), module, parentScope
+                );
 
                 module.addCode(labelNextCase, "label");
                 module.addCode("JF", "jf");
@@ -526,19 +632,23 @@ public class Translator {
                 module.addCode("JMP", "jump");
             }
 
-//          label for next case or end
+        // label for next case or end
             module.setLabelValue(labelNextCase);
             module.addCode(labelNextCase, "label");
             module.addCode(":", "colon");
         }
 
         // in case its the last el or default case
-        if (!module.labels.containsKey(labelEnd) || module.labels.get(labelEnd) == -1) {
+        if (
+            !module.labels.containsKey(labelEnd)
+            || module.labels.get(labelEnd) == -1
+        ) {
             module.setLabelValue(labelEnd);
             module.addCode(labelEnd, "label");
             module.addCode(":", "colon");
         }
     }
+
     /**
      * Translates special $case* expressions
      * - $caseIs → checks if target == constant
@@ -547,7 +657,9 @@ public class Translator {
      * <p>
      * The generated postfix code pushes comparison results (true/false) to the stack.
      */
-    private void translateCaseExpr(IR.Expr expr, PostfixModule module, IR.Scope scope) {
+    private void translateCaseExpr(
+        IR.Expr expr, PostfixModule module, IR.Scope scope
+    ) {
         String op = expr.op();
         IR.Var target = expr.vars().get(0);
 
@@ -558,7 +670,9 @@ public class Translator {
                 module.addCode("==", "rel_op");
             }
             case "$caseIn" -> {
-                IR.Var min = expr.vars().get(1), max = expr.vars().get(2);
+                IR.Var min = expr.vars().get(1);
+                IR.Var max = expr.vars().get(2);
+
                 translateValue(min.val(), module, scope);
                 translateValue(target.val(), module, scope);
                 module.addCode("<=", "rel_op");
@@ -589,6 +703,7 @@ public class Translator {
             }
         }
     }
+
     private void printModuleInfo(PostfixModule module) {
         final String RESET = "\u001B[0m";
         final String MAGENTA = "\u001B[35m";
