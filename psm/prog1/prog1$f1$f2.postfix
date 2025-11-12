@@ -1,0 +1,32 @@
+.target: Postfix Machine
+.version: 0.3
+
+.vars(
+	x2	float
+	r2	int
+)
+
+.globVarList(
+	a
+)
+
+
+.code(
+	a	    l-val
+    a	    r-val
+    a	    r-val
+	+	    math_op
+    =	    assign_op
+    r2	    l-val
+    a	    r-val
+    i2f     conv
+    c       r-val                    // c is a variable inside f1 function that encloses f2 (this func)
+    +       math_op
+    x2	    r-val
+    NEG     math_op
+    -       math_op
+    f2i     conv
+    =	    assign_op
+    r2	    r-val
+    RET
+)

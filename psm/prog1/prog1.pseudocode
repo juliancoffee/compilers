@@ -1,0 +1,34 @@
+var a,b :int
+  ------------------------
+  def f1(x1,y1:int):float
+  | var c: float
+  | ---------------------
+  | def f2(x2:float):int             # повертаємо int, хоча x2 - float. Потрібно буде перетворити тип
+  | | var r2:int
+  | | begin
+  | |   a = a+a
+  | |   r2 = a+c-(-x2)             # використовується c з області видимості функції f1 (enclosure)
+  | | return r2
+  | ---------------------
+  | begin
+  | c = -8.3
+  | c = x1*y1+f2(a)
+  | return c
+  ------------------------
+  def f3(a:int):float
+  | var b: float  # тут глобальна b у тіні локальної
+  | begin
+  | b = a+f1(12,15) # тут a - параметр (глобальна у тіні параметра)
+  | return b
+
+begin
+  a = 2
+  b = 3
+
+  if a^a > b then
+    write(f1(a,b)+f3(2*a))
+  else
+    write(f1(a,b)/f3(2*a))
+  endif
+
+end

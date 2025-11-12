@@ -1,0 +1,88 @@
+program AdvancedProg
+  var max_iterations : int
+  var initial_message : string
+  var processing_active : bool # Глобальна булева змінна
+  var final_output : string
+  var i : int
+  var current_sum : int
+
+  ------------------------
+  def process_item(value : int, text : string, state : bool) : string
+  | var temp_result : string
+  | var is_value_even : bool
+  |
+  | begin
+  |   is_value_even = (value % 2) == 0
+  |
+  |   # Умовний оператор на основі булевих значень
+  |   if state AND is_value_even then
+  |     temp_result = "Processed_Even_" + text + "_" + string(value)
+  |   else if NOT state AND NOT is_value_even then
+  |     temp_result = "Processed_Odd_Inactive_" + text
+  |   else
+  |     temp_result = "Processed_Mixed_" + text
+  |   endif
+  |
+  |   return temp_result
+  ------------------------
+
+  def perform_complex_calculation(limit : int, message : string) : string
+  | var current_sum : int
+  | var i : int
+  | var processed_string_part : string
+  | var accumulated_output : string
+  |
+  | begin
+  |   current_sum = 0
+  |   accumulated_output = ""
+  |
+  |   for i from 1 to limit step 1 do
+  |     current_sum = current_sum + (i * 2)
+  |
+  |     processed_string_part = process_item(i, message, processing_active)
+  |
+  |     if i > 1 then
+  |       accumulated_output = accumulated_output + "; " + processed_string_part
+  |     else
+  |       accumulated_output = processed_string_part
+  |     endif
+  |
+  |     write("В циклі, i = " + string(i))
+  |   endfor
+  |
+  |   return "Final Sum: " + string(current_sum) + ", Details: [" + accumulated_output + "]"
+  ------------------------
+
+begin # Початок виконання основної програми
+  max_iterations = 5
+  initial_message = "Step"
+  processing_active = true # Активуємо обробку
+
+  # Приклад ініціалізації глобальних змінних, які будуть затінені в функціях
+  i = 100 # Глобальна i
+  current_sum = -999 # Глобальна current_sum (буде затінена)
+
+  # Виклик основної функції обробки
+  final_output = perform_complex_calculation(max_iterations, initial_message)
+
+  # Виведення результатів
+  write("--- Перший запуск ---")
+  write("Глобальна i після виклику: " + string(i)) # Глобальна i не змінилась
+  write("Глобальна current_sum після виклику: " + string(current_sum)) # Глобальна current_sum не змінилась
+  write("Результат обробки: " + final_output)
+
+  # Змінюємо глобальні змінні для іншого сценарію
+  max_iterations = 3
+  initial_message = "Retry"
+  processing_active = false # Деактивуємо обробку
+
+  # Повторний виклик функції
+  final_output = perform_complex_calculation(max_iterations, initial_message)
+
+  # Виведення результатів другого запуску
+  write("--- Другий запуск ---")
+  write("Глобальна i після виклику: " + string(i))
+  write("Глобальна current_sum після виклику: " + string(current_sum))
+  write("Результат обробки: " + final_output)
+
+end # Кінець програми

@@ -1,0 +1,86 @@
+.target: Postfix Machine
+.version: 0.3
+
+.vars(
+    n   int
+)
+
+.labels(
+    L_f         54
+    L_end       58
+
+.code(
+    // 1) Конвертація int - bool
+    0           int
+    i2b         conv
+    DUP         stack_op
+    OUT         out_op        // FALSE
+    b2i         conv
+    OUT         out_op        // 0
+
+    // 2) Конвертація int - string
+    123         int
+    i2s         conv
+    OUT         out_op        // "123"
+
+    // 3) Конвертація float - string
+    3.14        float
+    f2s         conv
+    DUP         stack_op
+    OUT         out_op        // "3.14"
+    s2f         conv
+    OUT         out_op        // 3.14
+
+    // 4) Логічні оператори
+    TRUE        bool
+    FALSE       bool
+    AND         bool_op
+    OUT         out_op        // FALSE
+
+    TRUE        bool
+    NOT         bool_op
+    OUT         out_op        // FALSE
+
+    FALSE       bool
+    TRUE        bool
+    OR          bool_op
+    OUT         out_op        // TRUE
+
+    // 5) Операції зі стеком
+    1           int
+    2           int
+    3           int
+    SWAP        stack_op      // тепер стек: [1, 3, 2]
+    OUT         out_op        // 2
+    DUP         stack_op      // [1, 3, 3]
+    OUT         out_op        // 3
+    POP         stack_op      // видалили останнє 3
+    OUT         out_op        // 1
+    NOP         stack_op      // нічого не робить
+
+    // 6) Перевірка умови: (n > 10) AND (n < 20)
+    n           l-val
+    15          int
+    =           assign_op
+    n           r-val
+    10          int
+    >           rel_op
+    n           r-val
+    20          int
+    <           rel_op
+
+    AND         bool_op
+    L_f         label
+    JF          jf
+
+    "У діапазоні"   string
+    OUT             out_op
+    L_end       label
+    JMP         jump
+    L_f     label
+    :           colon
+    "Не в діапазоні" string
+    OUT             out_op
+    L_end       label
+    :           colon
+)
