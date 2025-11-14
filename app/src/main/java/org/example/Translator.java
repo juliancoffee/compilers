@@ -303,8 +303,27 @@ public class Translator {
                             module.addCode("f2s", "conv");
                         }
                         case BOOL -> {
-                            module.addCode("b2i", "conv");
-                            module.addCode("i2s", "conv");
+                            var labelFalse = module.createLabel();
+                            var labelEnd = module.createLabel();
+
+                            // if false, jump to labelFalse
+                            module.addCode(labelFalse, "label");
+                            module.addCode("JF", "jf");
+
+                            // otherwise, put string "true" on a stack
+                            // and go to the end label
+                            module.addCode("true", "string");
+
+                            module.addCode(labelEnd, "label");
+                            module.addCode("JMP", "jump");
+
+                            // labelFalse, put string "false" on a stack
+                            module.setLabel(labelFalse);
+
+                            module.addCode("false", "string");
+
+                            // end
+                            module.setLabel(labelEnd);
                         }
                         case STRING -> {
                             // no cast needed
