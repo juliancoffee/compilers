@@ -1,7 +1,45 @@
 func main() {
-    if "hello" < "hell" {
-        print("`hello` < `hell`");
-    } else {
-        print("`hello` > `hell`");
+    var t = "0";
+
+    // works, ofc
+    for n in range(0, 5, 1) {
+        print(n);
+    }
+
+    print("========");
+    // works, ofc
+    for x1 in "hello" {
+        print(x1);
+    }
+
+    print("========");
+    // works as it should, implemented differently
+    for x in "hellish" {
+        t = x;
+        print("===");
+        for x in "hello" {
+            print(x, t);
+        }
+    }
+
+    // FIXME: doesn't work, reuses variables (x is the same in both)
+    var z = 0;
+    for y in range(0, 5, 1) {
+        z = y;
+        print("===");
+        for y in range(0, 5, 1) {
+            print(y, z);
+        }
+    }
+
+
+    var s = 0;
+    for x in range(0, 5, 1) {
+        // FIXME: doesn't work, reuses variables (x:str from previous loop)
+        s = x;
+        print("===");
+        for y in range(0, 5, 1) {
+            print(x, s);
+        }
     }
 }

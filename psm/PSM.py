@@ -748,6 +748,26 @@ class VirtualPostfixMachine:
             )
         elif op == "NOP":
             self._debug_print("   Нічого не робимо (NOP)")
+        elif op == "LEN":
+            lexeme, ty = self._get_1_operand("LEN")
+            if ty != "string":
+                console.print(
+                    f"\nПОМИЛКА: LEN може застосовуватись лише до string, не до {ty}"
+                )
+                exit(1)
+            length = len(lexeme)
+            self.stack.append((length, "int"))
+            self._debug_print(f"  LEN: {lexeme} -> {length}")
+        elif op == "NTH":
+            lexeme1, ty1, lexeme2, ty2 = self._get_2_operands("NTH")
+            if ty1 != "string" or ty2 != "int":
+                console.print(
+                    f"\nПОМИЛКА: NTH може застосовуватись лише до string і int, не до {ty1}, {ty2}"
+                )
+                exit(1)
+            idx = int(lexeme2)
+            self.stack.append((lexeme1[idx], "string"))
+            self._debug_print(f"  NTH: {lexeme1}{lexeme2} -> {lexeme1[idx]}")
 
     def _call_func(self, func_name: str):
         if func_name not in self.functions:

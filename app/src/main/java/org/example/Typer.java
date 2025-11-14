@@ -25,6 +25,7 @@ class Typer {
      */
     ST parseTree;
     ArrayList<Integer> lineIndex;
+    private Integer iterableCount = 0;
 
     /* Typer output
      */
@@ -472,9 +473,39 @@ class Typer {
         );
 
         var forName = stmt.forIdent();
+        String storeName = null;
+        IR.Var iterableArg = null;
+
+        String iterCountName = null;
+        IR.Var countArg = null;
+        var bornVars = new ArrayList<>(List.of(forName));
+        if (iterType == IR.TY.STRING) {
+            this.iterableCount += 1;
+
+            // to copy the iterable string
+            iterableArg = new IR.Var(
+                new IR.Arg(iterType),
+                iterType,
+                span,
+                true
+            );
+            storeName = "_s" + iterableCount;
+            bornVars.add(storeName);
+
+            // to init a counter
+            countArg = new IR.Var(
+                new IR.Arg(IR.TY.INT),
+                IR.TY.INT,
+                span,
+                true
+            );
+            iterCountName = "_i" + iterableCount;
+            bornVars.add(iterCountName);
+        }
+
         IR.Scoped scopedFor = new IR.Scoped(
             IR.SCOPE_KIND.FOR,
-            new ArrayList<>(List.of(forName)),
+            new ArrayList<>(bornVars),
             Optional.of(iterable),
             forScope
         );
@@ -485,7 +516,13 @@ class Typer {
             span,
             false
         );
+
         forScope.varMapping().put(forName, arg);
+        if (iterType == IR.TY.STRING) {
+            forScope.varMapping().put(storeName, iterableArg);
+            forScope.varMapping().put(iterCountName, countArg);
+        }
+
 
         scope.entries().add(scopedFor);
         typeCheckBlock(stmt.block(), forScope);

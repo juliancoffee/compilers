@@ -549,14 +549,61 @@ public class Translator {
             module.addCode("JMP", "jump");
 
             module.setLabel(labelEnd);
-
         } else if (
             iterable instanceof IR.Atom
             || iterable instanceof IR.Ref
             || iterable instanceof IR.Expr
         ) {
-            // TODO: implement string iterables
+            String storeVar = scopedEntry.bornVars().get(1);
+            String countVar = scopedEntry.bornVars().get(2);
 
+            // copy dependency value to store
+            module.addCode(storeVar, "l-val");
+            translateValue(iterable, module, parentScope);
+            module.addCode(":=", "assign_op");
+
+            // set init char counter to 0
+            module.addCode(countVar, "l-val");
+            module.addCode("0", "int");
+            module.addCode(":=", "assign_op");
+
+            // set the label before condition check
+            String labelCheck = module.createLabel();
+            module.setLabel(labelCheck);
+
+            // countVar < LEN
+            module.addCode(countVar, "r-val");
+            module.addCode(storeVar, "r-val");
+            module.addCode("LEN", "stack_op");
+            module.addCode("<", "rel_op");
+
+            String labelEnd = module.createLabel();
+
+            // if no, go to the end
+            module.addCode(labelEnd, "label");
+            module.addCode("JF", "jf");
+
+            // if yes, continue, set iterVar to new character
+            module.addCode(iterVar, "l-val");
+            module.addCode(storeVar, "r-val");
+            module.addCode(countVar, "r-val");
+            module.addCode("NTH", "stack_op");
+            module.addCode(":=", "assign_op");
+
+            // execute scope
+            translateScope(scopedEntry.scope(), module);
+
+            // countVar += 1
+            module.addCode(countVar, "l-val");
+            module.addCode(countVar, "r-val");
+            module.addCode("1", "int");
+            module.addCode("+", "math_op");
+            module.addCode(":=", "assign_op");
+
+            module.addCode(labelCheck, "label");
+            module.addCode("JMP", "jump");
+
+            module.setLabel(labelEnd);
         }  else {
             throw new IllegalArgumentException(
                 "Unsupported iterable for FOR loop."
