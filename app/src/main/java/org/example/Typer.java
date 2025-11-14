@@ -12,6 +12,12 @@ class Typer {
     /*
      * Type state
      */
+    private static final IR.Operator mainSpec = new IR.Operator(
+        new ArrayList<>(List.of(new IR.OpSpec(
+                new ArrayList<>(),
+                IR.TY.VOID
+            )
+        )));
     boolean hasMain = false;
 
     /*
@@ -693,29 +699,19 @@ class Typer {
             )));
 
         log.debug("[new func] " + name + " -> " + newOp);
-        if (this.ir.opStore().containsKey(name)) {
+        if (this.ir.opStore().putIfAbsent(name, newOp) != null) {
             throw fail(
                 span,
                 "re-defined function " + name,
                 "not allowed"
             );
         }
-        this.ir.opStore().put(name, newOp);
 
         if (name.equals("main")) {
             if (this.hasMain) {
                 throw fail(span, "tried to re-define main", "not allowed");
             }
-            if (!newOp.equals(new IR.Operator(
-                new ArrayList<>(
-                    List.of(
-                        new IR.OpSpec(
-                            new ArrayList<>(),
-                            IR.TY.VOID
-                        )
-                    )
-                )
-            ))) {
+            if (!newOp.equals(Typer.mainSpec)) {
                 throw fail(span,
                     "wrong main signature: " + typeArgs + " -> " + returnType,
                     "expected () -> Void");
@@ -733,28 +729,28 @@ class Typer {
             newScope.varMapping().put(p.first(), arg);
         }
         this.typeCheckBlock(stmt.block(), newScope);
-        boolean hasReturn = newScope.entries().stream()
-                .flatMap(e -> {
-                    if (e instanceof IR.Expr expr && expr.op().equals("$return")) {
-                        return Stream.of(expr);
-                    }
-                    if (e instanceof IR.Scoped innerScope) {
-                        return innerScope.scope().entries().stream()
-                                .filter(x -> x instanceof IR.Expr ex && ex.op().equals("$return"));
-                    }
-                    return Stream.empty();
-                })
-                .findAny()
-                .isPresent();
 
-        if (returnType != IR.TY.VOID && !hasReturn) {
+        if (returnType != IR.TY.VOID && !this.hasReturn(newScope)) {
             throw fail(
                     span,
                     "missing return statement",
-                    "function " + name + " must return " + returnType
+                    "non-void function " + name + " must return " + returnType
             );
         }
 
+    }
+
+    boolean hasReturn(IR.Scope scope) {
+        return scope.entries().stream().map(
+            entry -> switch (entry) {
+                case IR.Expr e -> e.op().equals("$return");
+                case IR.Scoped s -> this.hasReturn(s.scope());
+                case IR.NewVar _ -> false;
+            }
+        )
+        .filter(e -> e)
+        .findAny()
+        .isPresent();
     }
 
 

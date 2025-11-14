@@ -1,8 +1,9 @@
-let BaseValue = 10; // Глобальна змінна
+let baseValue = 10; // Глобальна змінна
 
 func addAndFormat(val: Double) -> Double {
+    print("BaseValue =", baseValue);
     let b = 5.0;
-    let sum = val + b + BaseValue;
+    let sum = val + b + baseValue;
     print("Сума для b =", b, "і val =", val, "становить", sum);
     return sum;
 }
@@ -14,6 +15,6 @@ func calculate(a: Int) -> Double {
     return finalSum;
 }
 func main() {
-    let result = calculate(BaseValue);
+    let result = calculate(baseValue);
     print("Результат:", result);
 }

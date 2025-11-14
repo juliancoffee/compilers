@@ -9,6 +9,10 @@ import static org.example.IR.SCOPE_KIND.CASE_BRANCH;
 record OpInfo(String op, String token) {}
 
 public class Translator {
+    private static final Set<String> builtins = Set.of(
+        "+","-","*","/","**","&&","||","<","<=",">",">=","==","!=","!"
+    );
+
     private final IR ir;
     private final Map<String, PostfixModule> modules = new HashMap<>();
 
@@ -17,7 +21,7 @@ public class Translator {
     }
 
     private PostfixModule getModule(String funcName) {
-        String moduleKey = funcName.equals("main") ? "main" : "main$" + funcName;
+        String moduleKey = "main$" + funcName;
         return modules.get(moduleKey);
     }
 
@@ -31,8 +35,10 @@ public class Translator {
 
         List<String> currentlyVisibleGlobalVars = new ArrayList<>();
         Map<String, IR.Operator> availableGlobalFunctions = new LinkedHashMap<>();
-        Map<String, PostfixModule> allModules = new HashMap<>();
+        LinkedHashMap<String, PostfixModule> allModules = new LinkedHashMap<>();
 
+        // roll through all vars and register them
+        // roll through all functions and create their modules
         for (IR.Entry entry : globalScope.entries()) {
             if (entry instanceof IR.NewVar newVar) {
                 if (!newVar.v().mutable()) {
@@ -43,48 +49,32 @@ public class Translator {
                     && scoped.kind() == IR.SCOPE_KIND.FUN
             ) {
                 String funcName = scoped.scope().funcName();
-                String moduleName =
-                    funcName.equals("main")
-                        ? "main"
-                        : "main$" + funcName;
+                String moduleName = "main$" + funcName;
                 PostfixModule module = new PostfixModule(moduleName);
                 allModules.put(moduleName, module);
 
-                collectAllVars(scoped.scope(), module);
-
-                if (!funcName.equals("main")) {
-                    module.globalVars.addAll(new ArrayList<>(currentlyVisibleGlobalVars));
-                }
+                module.globalVars.addAll(
+                    new ArrayList<>(currentlyVisibleGlobalVars)
+                );
 
                 // add curr func for recursion
-                if (ir.opStore().containsKey(funcName) && !availableGlobalFunctions.containsKey(funcName)) {
-                    availableGlobalFunctions.put(funcName, ir.opStore().get(funcName));
+                if (ir.opStore().containsKey(funcName)) {
+                    availableGlobalFunctions
+                        .putIfAbsent(funcName, ir.opStore().get(funcName));
                 }
+
                 // add to .func (only those that have already been init-ed)
-                for (Map.Entry<String, IR.Operator> opEntry : availableGlobalFunctions.entrySet()) {
-                    String opKey = opEntry.getKey();
-                    if (Set.of("+","-","*","/","**","&&","||","<","<=",">",">=","==","!=","!","main").contains(opKey)) continue;
-
-                    IR.OpSpec spec = opEntry.getValue().alternatives().getFirst();
-                    String retType = spec.returnType().toString().toLowerCase();
-                    int arity = spec.argTypes().size();
-                    module.funcDeclarations.add(new FuncDeclaration(opKey, retType, arity));
-                }
-
-                if (funcName.equals("main")) {
-                    translateMainScope(scoped.scope(), module, globalScope, globalScope.entries());
-
-                    // all globalScope.varMapping -> main .vars
-                    for (Map.Entry<String, IR.Var> varEntry : globalScope.varMapping().entrySet()) {
-                        if (!varEntry.getValue().mutable()) {
-                            module.variables.putIfAbsent(varEntry.getKey(), varEntry.getValue().type().toString().toLowerCase());
-                        }
-                    }
-                } else {
-                    translateScope(scoped.scope(), module, globalScope);
-                }
+                collectAllFuncs(module, availableGlobalFunctions);
+                translateScope(scoped.scope(),  module);
             }
         }
+
+        // inititalize global scope
+        PostfixModule globalModule = new PostfixModule("main");
+        allModules.put("main", globalModule);
+        collectAllFuncs(globalModule, availableGlobalFunctions);
+        translateScope(globalScope, globalModule);
+        globalModule.addCode("main", "CALL");
 
         // clear output directory beforehand
         var dir = new File(baseDir);
@@ -101,111 +91,10 @@ public class Translator {
         }
     }
 
-    /**
-     * Translates the main scope of the program into Postfix code.
-     * Handles initialization of global variables, local variable declarations,
-     * and executes all statements in the main block (including nested structures).
-     */
-    private void translateMainScope(
-        IR.Scope mainScope,
-        PostfixModule module,
-        IR.Scope rootScope,
-        List<IR.Entry> globalEntries
-    ) {
-
-        // init global let     here?
-        for (IR.Entry entry : globalEntries) {
-            if (entry instanceof IR.NewVar newVar) {
-                if (!newVar.v().mutable()) {
-                    module.addCode(newVar.name(), "l-val");
-                    translateValue(newVar.v().val(), module, rootScope);
-                    module.addCode(":=", "assign_op");
-                }
-            }
-        }
-
-        // local .vars
-        for (Map.Entry<String, IR.Var> entry : mainScope.varMapping().entrySet()) {
-            if (entry.getValue().val() instanceof IR.Arg) {
-                module.variables.put(
-                    entry.getKey(),
-                    entry.getValue().type().toString().toLowerCase()
-                );
-            } else {
-                module.variables.put(
-                    entry.getKey(),
-                    entry.getValue().type().toString().toLowerCase()
-                );
-            }
-        }
-
-        for (int i = 0; i < mainScope.entries().size(); i++) {
-            IR.Entry entry = mainScope.entries().get(i);
-
-            if (entry instanceof IR.NewVar newVar) {
-                // ignore global let (bc already init-ed)
-                boolean isGlobalLet = rootScope
-                    .varMapping()
-                    .containsKey(newVar.name())
-                    && !newVar.v().mutable();
-
-                if (isGlobalLet) {
-                    continue;
-                }
-
-                module.addCode(newVar.name(), "l-val");
-                translateValue(newVar.v().val(), module, mainScope);
-                module.addCode(":=", "assign_op");
-
-            } else if (entry instanceof IR.Expr expr) {
-                translateAction(expr, module, mainScope);
-
-            } else if (entry instanceof IR.Scoped scoped) {
-                if (scoped.kind() == CASE_BRANCH) {
-                    List<IR.Scoped> switchCases = new ArrayList<>();
-                    switchCases.add(scoped);
-
-                    // look for all CASE_BRANCH
-                    int j = i + 1;
-                    while (
-                        j < mainScope.entries().size()
-                        &&
-                        mainScope.entries().get(j) instanceof IR.Scoped nextScoped
-                        &&
-                        (nextScoped.kind() == CASE_BRANCH)
-                    )
-                    {
-                        switchCases.add(nextScoped);
-                        j++;
-                    }
-                    i = j - 1;
-                    translateSwitch(switchCases, module, mainScope);
-
-                } else {
-                    translateScopedInstruction(scoped, module, mainScope, i);
-                }
-            }
-        }
-    }
-
-    // other scopes (not main)
     private void translateScope(
-        IR.Scope scope, PostfixModule module, IR.Scope rootScope
+        IR.Scope scope, PostfixModule module
     ) {
-        // local .vars
-        for (Map.Entry<String, IR.Var> entry : scope.varMapping().entrySet()) {
-            if (entry.getValue().val() instanceof IR.Arg) {
-                module.variables.put(
-                    entry.getKey(),
-                    entry.getValue().type().toString().toLowerCase()
-                );
-            } else if (entry.getValue().mutable()) {
-                module.variables.put(
-                    entry.getKey(),
-                    entry.getValue().type().toString().toLowerCase()
-                );
-            }
-        }
+        collectAllVars(scope, module);
 
         for (int i = 0; i < scope.entries().size(); i++) {
             IR.Entry entry = scope.entries().get(i);
@@ -215,7 +104,11 @@ public class Translator {
                     // this funcs local vars
                     module.addCode(newVar.name(), "l-val");
                     translateValue(newVar.v().val(), module, scope);
-                    module.addCode(":=", "assign_op");
+                    if (newVar.v().type() == IR.TY.VOID) {
+                        module.addCode("NOP", "stack_op");
+                    } else {
+                        module.addCode(":=", "assign_op");
+                    }
                 }
                 case IR.Expr expr -> {
                     translateAction(expr, module, scope);
@@ -263,9 +156,34 @@ public class Translator {
                     newVar.name(),
                     newVar.v().type().toString().toLowerCase()
                 );
-            } else if (entry instanceof IR.Scoped scopedEntry) {
+            } else if (
+                entry instanceof IR.Scoped scopedEntry
+                && scopedEntry.kind() != IR.SCOPE_KIND.FUN
+            ) {
                 collectAllVars(scopedEntry.scope(), module);
             }
+        }
+    }
+
+    private void collectAllFuncs(
+        PostfixModule module,
+        Map<String, IR.Operator> availableGlobalFunctions
+    ) {
+        for (
+            Map.Entry<String, IR.Operator> opEntry
+            :
+            availableGlobalFunctions.entrySet()
+        ) {
+            String opKey = opEntry.getKey();
+            // skip builtins
+            if (Translator.builtins.contains(opKey)) continue;
+
+            IR.OpSpec spec = opEntry.getValue().alternatives().getFirst();
+            String retType = spec.returnType().toString().toLowerCase();
+            int arity = spec.argTypes().size();
+            module
+                .funcDeclarations
+                .add(new FuncDeclaration(opKey, retType, arity));
         }
     }
 
@@ -285,7 +203,11 @@ public class Translator {
                     "l-val"
                 );
                 translateValue(value.val(), module, scope);
-                module.addCode(":=", "assign_op");
+                if (value.type() == IR.TY.VOID) {
+                    module.addCode("NOP", "stack_op");
+                } else {
+                    module.addCode(":=", "assign_op");
+                }
             }
             case "$return" -> {
                 translateValue(expr.vars().getFirst().val(), module, scope);
@@ -294,15 +216,17 @@ public class Translator {
             case "print" -> {
                 module.addCode("", "string");
                 for (IR.Var variable : expr.vars()) {
-                    translateValue(variable.val(), module, scope);
                     switch (variable.type()) {
                         case INT -> {
+                            translateValue(variable.val(), module, scope);
                             module.addCode("i2s", "conv");
                         }
                         case FLOAT -> {
+                            translateValue(variable.val(), module, scope);
                             module.addCode("f2s", "conv");
                         }
                         case BOOL -> {
+                            translateValue(variable.val(), module, scope);
                             var labelFalse = module.createLabel();
                             var labelEnd = module.createLabel();
 
@@ -326,6 +250,7 @@ public class Translator {
                             module.setLabel(labelEnd);
                         }
                         case STRING -> {
+                            translateValue(variable.val(), module, scope);
                             // no cast needed
                         }
                         case VOID -> {
@@ -528,7 +453,7 @@ public class Translator {
         module.addCode("JF", "jf");
 
         // then block
-        translateScope(thenScoped.scope(), module, parentScope);
+        translateScope(thenScoped.scope(), module);
 
         // JMP to else
         if (elseScoped != null) {
@@ -540,7 +465,7 @@ public class Translator {
         if (elseScoped != null) {
             module.setLabel(labelElse);
             // elseblock
-            translateScope(elseScoped.scope(), module, parentScope);
+            translateScope(elseScoped.scope(),  module);
         }
 
         // end
@@ -561,7 +486,7 @@ public class Translator {
         module.addCode(labelEnd, "label");
         module.addCode("JF", "jf");
 
-        translateScope(scopedEntry.scope(), module, parentScope);
+        translateScope(scopedEntry.scope(),  module);
 
         // JMP to start
         module.addCode(labelLoop, "label");
@@ -607,7 +532,7 @@ public class Translator {
             module.addCode(labelEnd, "label");
             module.addCode("JF", "jf");
 
-            translateScope(scopedEntry.scope(), module, parentScope);
+            translateScope(scopedEntry.scope(),  module);
             // iterVar += step
             module.addCode(iterVar, "l-val");
             module.addCode(iterVar, "r-val");
@@ -654,13 +579,11 @@ public class Translator {
                     caseScoped.dependencyValue().get(), module, parentScope
                 );
 
-                // TODO: check the logic for collided conditions,
-                // This smells fishy
                 module.addCode(labelNextCase, "label");
                 module.addCode("JF", "jf");
             }
 
-            translateScope(caseScoped.scope(), module, parentScope); // body
+            translateScope(caseScoped.scope(), module); // body
 
             if (i < cases.size() - 1) {
                 module.addCode(labelEnd, "label");

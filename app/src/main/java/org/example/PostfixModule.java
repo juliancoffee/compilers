@@ -42,7 +42,7 @@ class PostfixModule {
         code.add(new PostfixInstruction(lexeme, token));
     }
 
-    // use for JUMPs to, declare now, specify later with defineLabel()
+    // use for JUMPs to, declare now, set later with setLabel()
     public String createLabel() {
         String label = "m" + labelCounter++;
         labels.put(label, -1);

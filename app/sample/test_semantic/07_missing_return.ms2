@@ -1,7 +1,33 @@
+func fOk() -> Int {
+    if true {
+        if true {
+            if true {
+                if true {
+                    if true {
+                        if true {
+                            if true {
+                                if true {
+                                    if true {
+                                        if true {
+                                            return 5;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 //Відсутній return у функції, що має тип
 func f() -> Int {
     var x = 10;
 }
+
+
 func main() {
    var x = f();
 }

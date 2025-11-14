@@ -19,3 +19,9 @@ build
 # patch files and zips
 *.patch
 *.zip
+
+# postfix files
+app/sample/postfix
+
+# macos zips
+.DS_STORE
