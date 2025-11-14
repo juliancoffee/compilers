@@ -344,10 +344,14 @@ public class Translator {
         IR.Expr expr, PostfixModule module, IR.Scope scope
     ) {
         String op = expr.op();
-        boolean isMath = List.of("+", "-", "*", "/", "**").contains(op);
-
         boolean toFloat = "**".equals(op) ||
-                (isMath
+                (
+                    List.of(
+                        // arithmetic
+                        "+", "-", "*", "/", "**",
+                        // relations
+                        "<", ">", "=<", "=>", "==", "!="
+                    ).contains(op)
                     && expr.vars().stream().anyMatch(v ->
                         v.type() == IR.TY.FLOAT
                             ||

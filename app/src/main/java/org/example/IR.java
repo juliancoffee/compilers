@@ -195,22 +195,33 @@ public record IR(
         // --- Binary Relational Operators ---
         map.put("<", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
-                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
+                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL)
         ))));
 
         map.put("<=", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
-                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
+                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL)
         ))));
 
         map.put(">", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
-                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
+                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL)
         ))));
-// TODO str?
+
         map.put(">=", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL)
         ))));
 
@@ -219,6 +230,8 @@ public record IR(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(BOOL, BOOL)), BOOL)
         ))));
 
@@ -226,6 +239,8 @@ public record IR(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(BOOL, BOOL)), BOOL)
         ))));
 

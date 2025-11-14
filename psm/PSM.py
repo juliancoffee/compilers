@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import os
 from textwrap import indent
@@ -491,10 +493,11 @@ class VirtualPostfixMachine:
     def _do_relational(self, op: str):
         l_lexeme, l_type, r_lexeme, r_type = self._get_2_operands(op)
 
-        if l_type not in ("int", "float", "bool") or r_type not in (
+        if l_type not in ("int", "float", "bool", "string") or r_type not in (
             "int",
             "float",
             "bool",
+            "string",
         ):
             console.print(
                 f"\nПОМИЛКА: Оператор відношення може бути застосований лише до чисел та типу bool, отримано типи: {l_type} і {r_type}"
