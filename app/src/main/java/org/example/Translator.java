@@ -189,7 +189,9 @@ public class Translator {
     }
 
     // other scopes (not main)
-    private void translateScope(IR.Scope scope, PostfixModule module, IR.Scope rootScope) {
+    private void translateScope(
+        IR.Scope scope, PostfixModule module, IR.Scope rootScope
+    ) {
         // local .vars
         for (Map.Entry<String, IR.Var> entry : scope.varMapping().entrySet()) {
             if (entry.getValue().val() instanceof IR.Arg) {
@@ -308,6 +310,7 @@ public class Translator {
                             // no cast needed
                         }
                         case VOID -> {
+                            // insert new value instead of cast
                             module.addCode("", "string");
                         }
                     }
@@ -516,17 +519,13 @@ public class Translator {
 
         // label for else
         if (elseScoped != null) {
-            module.setLabelValue(labelElse);
-            module.addCode(labelElse, "label");
-            module.addCode(":", "colon");
+            module.setLabel(labelElse);
             // elseblock
             translateScope(elseScoped.scope(), module, parentScope);
         }
 
         // end
-        module.setLabelValue(labelEnd);
-        module.addCode(labelEnd, "label");
-        module.addCode(":", "colon");
+        module.setLabel(labelEnd);
     }
 
     // WhileStmt
@@ -536,9 +535,7 @@ public class Translator {
         String labelLoop = module.createLabel();
         String labelEnd = module.createLabel();
 
-        module.setLabelValue(labelLoop);
-        module.addCode(labelLoop, "label");
-        module.addCode(":", "colon");
+        module.setLabel(labelLoop);
 
         translateValue(scopedEntry.dependencyValue().get(), module, parentScope);
 
@@ -551,9 +548,7 @@ public class Translator {
         module.addCode(labelLoop, "label");
         module.addCode("JMP", "jump");
 
-        module.setLabelValue(labelEnd);
-        module.addCode(labelEnd, "label");
-        module.addCode(":", "colon");
+        module.setLabel(labelEnd);
     }
 
     // ForStmt
@@ -582,9 +577,7 @@ public class Translator {
             translateValue(start.val(), module, parentScope);
             module.addCode(":=", "assign_op");
 
-            module.setLabelValue(labelLoop);
-            module.addCode(labelLoop, "label");
-            module.addCode(":", "colon");
+            module.setLabel(labelLoop);
 
             // iterVar < end
             module.addCode(iterVar, "r-val");
@@ -607,16 +600,14 @@ public class Translator {
             module.addCode(labelLoop, "label");
             module.addCode("JMP", "jump");
 
-            module.setLabelValue(labelEnd);
-            module.addCode(labelEnd, "label");
-            module.addCode(":", "colon");
+            module.setLabel(labelEnd);
 
         } else if (
             iterable instanceof IR.Atom
             || iterable instanceof IR.Ref
             || iterable instanceof IR.Expr
         ) {
-            // TODO for str
+            // TODO: implement string iterables
 
         }  else {
             throw new IllegalArgumentException(
@@ -644,6 +635,8 @@ public class Translator {
                     caseScoped.dependencyValue().get(), module, parentScope
                 );
 
+                // TODO: check the logic for collided conditions,
+                // This smells fishy
                 module.addCode(labelNextCase, "label");
                 module.addCode("JF", "jf");
             }
@@ -655,10 +648,8 @@ public class Translator {
                 module.addCode("JMP", "jump");
             }
 
-        // label for next case or end
-            module.setLabelValue(labelNextCase);
-            module.addCode(labelNextCase, "label");
-            module.addCode(":", "colon");
+            // label for next case or end
+            module.setLabel(labelNextCase);
         }
 
         // in case its the last el or default case
@@ -666,9 +657,7 @@ public class Translator {
             !module.labels.containsKey(labelEnd)
             || module.labels.get(labelEnd) == -1
         ) {
-            module.setLabelValue(labelEnd);
-            module.addCode(labelEnd, "label");
-            module.addCode(":", "colon");
+            module.setLabel(labelEnd);
         }
     }
 
