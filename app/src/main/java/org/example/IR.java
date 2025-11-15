@@ -171,7 +171,7 @@ public record IR(
         ))));
 
         map.put("/", new Operator(new ArrayList<>(List.of(
-                new OpSpec(new ArrayList<>(List.of(INT, INT)), INT),
+                new OpSpec(new ArrayList<>(List.of(INT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), FLOAT)
