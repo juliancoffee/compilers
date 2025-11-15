@@ -1,58 +1,305 @@
+let debugNums = false;
+
+func wrap(s: String) -> String {
+    return "'" + s + "'";
+}
+
+func intPow(x: Int, pow: Int) -> Int {
+    var n = 1;
+
+    var steps = 0;
+    while steps < pow {
+        n = n * x;
+        steps = steps + 1;
+    }
+    return n;
+}
+
+func highestPower(n: Int) -> Int {
+    var highestPower = 0;
+    var counter = 10;
+    while n / counter > 1.0 {
+        counter = counter * 10;
+        highestPower = highestPower + 1;
+    }
+    return highestPower;
+}
+
+func formatDigit(n: Int) -> String {
+    switch (n) {
+        case 0 {
+            return "0";
+        }
+        case 1 {
+            return "1";
+        }
+        case 2 {
+            return "2";
+        }
+        case 3 {
+            return "3";
+        }
+        case 4 {
+            return "4";
+        }
+        case 5 {
+            return "5";
+        }
+        case 6 {
+            return "6";
+        }
+        case 7 {
+            return "7";
+        }
+        case 8 {
+            return "8";
+        }
+        case 9 {
+            return "9";
+        }
+        default {
+            print("ERROR:", n, "is not a digit!");
+            let x = 1 / 0;
+        }
+    }
+}
+
+let debugFormat = true;
+func formatNum(n: Int) -> String {
+    if debugFormat {
+        // print("======");
+        // print("n:", n);
+    }
+
+    var acc = "";
+
+    let eps = 0.0001;
+    var powers = highestPower(n);
+    var temp = n + 0.0;
+    while !(powers < 0) {
+        var counter = 0;
+        var res = 0;
+        if debugFormat {
+            // print("pre", counter, temp, 10 ** powers);
+        }
+        // print("pre", counter, temp, 10 ** powers);
+        while temp + eps > 10 ** powers {
+            temp = temp - 10 ** powers;
+            counter = counter + 1;
+            if debugFormat {
+                // print("post", counter, temp, 10 ** powers);
+            }
+            // print("post", counter, temp, 10 ** powers);
+        }
+        // handle overflows
+        if counter == 10 {
+            // print("preacc10:", wrap(acc));
+            acc = acc + "10";
+            powers = powers - 1;
+        } else {
+            // print("preacc:", wrap(acc));
+            acc = acc + formatDigit(counter);
+        }
+        if debugFormat {
+            // print("<>acc:" acc);
+        }
+        // print("<>acc:" acc);
+
+        powers = powers - 1;
+    }
+
+    return acc;
+}
+
+func charAt(s: String, n: Int) -> String {
+    var counter = 0;
+    for char in s {
+        if counter == n {
+            return char;
+        }
+        counter = counter + 1;
+    }
+
+    print("ERROR: string", wrap(s), "has no ", n ,"-th character");
+    let x = 1 / 0;
+}
+
+func isPrefix(prefix: String, whole: String) -> Bool {
+    var counter = 0;
+    var yes = false;
+    for char in prefix {
+        if charAt(whole, counter) == char {
+            yes = true;
+        } else {
+            yes = false;
+            return yes;
+        }
+        counter = counter + 1;
+    }
+    return yes;
+}
+
+func len(s: String) -> Int {
+    var counter = 0;
+    for char in s {
+        counter = counter + 1;
+    }
+    return counter;
+}
+
+func reverse(s: String) -> String {
+    var acc = "";
+    for char in s {
+        acc = char + acc;
+    }
+    return acc;
+}
+
+func parseDigit(ch: String) -> Int {
+    switch (ch) {
+        case "0" {
+            return 0;
+        }
+        case "1" {
+            return 1;
+        }
+        case "2" {
+            return 2;
+        }
+        case "3" {
+            return 3;
+        }
+        case "4" {
+            return 4;
+        }
+        case "5" {
+            return 5;
+        }
+        case "6" {
+            return 6;
+        }
+        case "7" {
+            return 7;
+        }
+        case "8" {
+            return 8;
+        }
+        case "9" {
+            return 9;
+        }
+        default {
+            print("ERROR:", wrap(ch), "is not a digit!");
+            let x = 1 / 0;
+        }
+    }
+}
+
+
+// parse positive integers
+func parseInt(pattern: String) -> Int {
+    if debugNums {
+        print("DEBUG: parsing", wrap(pattern));
+    }
+
+    var n = 0;
+    var power = 0;
+    for char in reverse(pattern) {
+        n = n + parseDigit(char) * intPow(10, power);
+        power = power + 1;
+    }
+    return n;
+}
+
+//
+// == Test functions ==
+//
+
+func testCharAt() {
+    print("== CharAt ==");
+    let s = "hello world";
+    print(0, "-th char of", wrap(s), "is", charAt(s, 0));
+    print(1, "-th char of", wrap(s), "is", charAt(s, 1));
+    print(10, "-th char of", wrap(s), "is", charAt(s, 10));
+    // will throw an error
+    print(12, "-th char of", wrap(s), "is", charAt(s, 12));
+}
+
+func testPrefixes() {
+    print("== Prefix ==");
+    print("Is prefix", wrap("h"), wrap("hello"), "?", isPrefix("h", "hello"));
+    print("Is prefix", wrap("h"), wrap("yeah"), "?", isPrefix("h", "yeah"));
+    print("Is prefix", wrap("hello"), wrap("hey"), "?", isPrefix("hello", "hey"));
+}
+
+func testReverse() {
+    print("== Reverse ==");
+    let nums = "12345";
+    print(wrap(nums), "->", wrap(reverse(nums)));
+}
+
+func testLen() {
+    print("== Length ==");
+    let nums = "12345";
+    print("Len of", wrap(nums), "=", len(nums));
+    print("Len of", wrap(""), "=", len(""));
+}
+
+func testParse() {
+    print("== Parse ==");
+    let nums = "12345";
+    print("Parsed", wrap(nums), parseInt(nums));
+    let nums1 = "123a45";
+    // Will throw an error
+    // print("Parsed", wrap(nums1), parseInt(nums1));
+    print("== Highest base ==");
+    var n1 = 12345;
+    print("Highest base", n1, highestPower(n1));
+    n1 = 52345;
+    print("Highest base", n1, highestPower(n1));
+    n1 = 92345;
+    print("Highest base", n1, highestPower(n1));
+    n1 = 9;
+    print("Highest base", n1, highestPower(n1));
+    n1 = 91;
+    print("Highest base", n1, highestPower(n1));
+}
+
+func testFormat() {
+    print("== Format ==");
+
+    // Zero
+    print(0, "->", wrap(formatNum(0)));
+
+    // Single digits
+    print(1, "->", wrap(formatNum(1)));
+    print(9, "->", wrap(formatNum(9)));
+
+    // Smallest multi-digit number
+    print(10, "->", wrap(formatNum(10)));
+    print(105, "->", wrap(formatNum(105)));
+
+    // A standard multi-digit number
+    print(42, "->", wrap(formatNum(42)));
+
+    // A number with a zero in the middle
+    print(205, "->", wrap(formatNum(205)));
+
+    // A larger number
+    print(12345, "->", wrap(formatNum(12345)));
+
+    // A number ending in zero
+    print(12340, "->", wrap(formatNum(12340)));
+}
+
+//
+// == Main ==
+//
+
 func main() {
-    print("= Simple range loop =");
-    for n in range(0, 5, 1) {
-        print(n);
-    }
-    // 0
-    // 1
-    // 2
-    // 3
-    // 4
-
-    print("= Simple container loop =");
-    for x1 in "hello" {
-        print(x1);
-    }
-    // h
-    // e
-    // l
-    // l
-    // o
-
-    print("= Nested container loops =");
-    var t = "";
-    for x in "hellish" {
-        // rebind to use it inside inner loop
-        t = x;
-        print("===");
-        // shadowing
-        for x in "hello" {
-            print(x, t);
-        }
-    }
-    // prints Cartesian Product
-
-    print("= Nested range loops =");
-    var z = 0;
-    for y in range(0, 5, 1) {
-        z = y;
-        print("===");
-        for y in range(0, 5, 1) {
-            print(y, z);
-        }
-    }
-    // prints Cartesian product of ranges
-
-
-    print("= Nested range loops (again) =");
-    var s = 0;
-    // NOTE: x here is different from x in "hellish" loop
-    for x in range(0, 5, 1) {
-        s = x;
-        print("===");
-        for y in range(0, 5, 1) {
-            print(y, s);
-        }
-    }
-    // prints Cartesian product of ranges
+    // testCharAt();
+    // testPrefixes();
+    // testReverse();
+    // testLen();
+    // testParse();
+    testFormat();
 }

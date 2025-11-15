@@ -11,6 +11,7 @@ func factorial(n: Int) -> Int {
     print("Factorial of", n, "=", res);
     return res;
 }
+
 func main() {
     let num: Int = 5;
     let result = factorial(num);

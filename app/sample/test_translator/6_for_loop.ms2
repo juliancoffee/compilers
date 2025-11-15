@@ -1,0 +1,58 @@
+func main() {
+    print("= Simple range loop =");
+    for n in range(0, 5, 1) {
+        print(n);
+    }
+    // 0
+    // 1
+    // 2
+    // 3
+    // 4
+
+    print("= Simple container loop =");
+    for x1 in "hello" {
+        print(x1);
+    }
+    // h
+    // e
+    // l
+    // l
+    // o
+
+    print("= Nested container loops =");
+    var t = "";
+    for x in "hellish" {
+        // rebind to use it inside inner loop
+        t = x;
+        print("===");
+        // shadowing
+        for x in "hello" {
+            print(x, t);
+        }
+    }
+    // prints Cartesian Product
+
+    print("= Nested range loops =");
+    var z = 0;
+    for y in range(0, 5, 1) {
+        z = y;
+        print("===");
+        for y in range(0, 5, 1) {
+            print(y, z);
+        }
+    }
+    // prints Cartesian product of ranges
+
+
+    print("= Nested range loops (again) =");
+    var s = 0;
+    // NOTE: x here is different from x in "hellish" loop
+    for x in range(0, 5, 1) {
+        s = x;
+        print("===");
+        for y in range(0, 5, 1) {
+            print(y, s);
+        }
+    }
+    // prints Cartesian product of ranges
+}

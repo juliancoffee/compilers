@@ -36,6 +36,11 @@ concatAndScope: $(mainJava)
 	@echo "============="
 	python3 psm/PSM.py -p app/sample/postfix -m main
 
+forStmt: $(mainJava)
+	./gradlew run --args="sample/test_translator/6_for_loop.ms2"
+	@echo "============="
+	python3 psm/PSM.py -p app/sample/postfix -m main
+
 basic: $(mainJava)
 	./gradlew run --args="sample/basic.ms2"
 	@echo "============="
@@ -46,4 +51,4 @@ simple: $(mainJava)
 	@echo "============="
 	python3 psm/PSM.py -p app/sample/postfix -m main
 
-allTest: rec flow arith switch concatAndScope
+allTest: rec flow arith switch concatAndScope forStmt
