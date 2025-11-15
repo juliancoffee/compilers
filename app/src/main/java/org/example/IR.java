@@ -8,6 +8,8 @@ public record IR(
 ) {
     public record Scope(
         Scope parentScope,
+        // scopeId used for Referencing variables
+        Integer scopeId,
         // function name
         String funcName,
         // stores and mappings
@@ -303,6 +305,7 @@ public record IR(
         // is the new one we just built.
         return new IR.Scope(
             null, // The core purpose of the function.
+            originalScope.scopeId(),
             originalScope.funcName(),
             originalScope.varMapping(),
             newEntries

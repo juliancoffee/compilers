@@ -85,6 +85,11 @@ public class PrinterIR {
                             ? scope.parentScope().funcName()
                             : "null";
         sb.append(indent(level + 1)).append("parent: ").append(parentName).append("\n");
+        sb
+            .append(indent(level + 1))
+            .append("scopeId: ")
+            .append(scope.scopeId())
+            .append("\n");
         // ---
 
         // Print Var Mapping

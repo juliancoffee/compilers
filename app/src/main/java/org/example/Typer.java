@@ -26,6 +26,7 @@ class Typer {
     ST parseTree;
     ArrayList<Integer> lineIndex;
     private Integer iterableCount = 0;
+    private Integer scopeCounter = 0;
 
     /* Typer output
      */
@@ -34,6 +35,7 @@ class Typer {
         new IR.Scope(
             // parent scope
             null,
+            this.nextScopeId(),
             // global namespace
             "",
             // name mappings
@@ -107,23 +109,6 @@ class Typer {
             if (alt.argTypes().equals(types)) {
                 return alt.returnType();
             }
-
-            // if (alt.argTypes().size() == 2) {
-            //     IR.TY req1 = alt.argTypes().get(0);
-            //     IR.TY req2 = alt.argTypes().get(1);
-            //     IR.TY got1 = types.get(0);
-            //     IR.TY got2 = types.get(1);
-            //
-            //     // Перевірка 1: Обидва INT, потрібні FLOAT
-            //     if (req1 == IR.TY.FLOAT && req2 == IR.TY.FLOAT && got1 == IR.TY.INT && got2 == IR.TY.INT) {
-            //         return alt.returnType();
-            //     }
-            //
-            //     // Перевірка 2: Змішані типи (наприклад, [INT, FLOAT] -> [FLOAT, FLOAT])
-            //     if ((req1 == IR.TY.FLOAT && got1 == IR.TY.INT) || (req2 == IR.TY.FLOAT && got2 == IR.TY.INT)) {
-            //         return alt.returnType();
-            //     }
-            // }
         }
         throw fail(
             span,
@@ -313,13 +298,6 @@ class Typer {
                             "variable was defined at " + formatSpan(tgt.span())
                         );
                     }
-//                    var action = new IR.Expr("$assign", new ArrayList<>(
-//                        List.of(
-//                            tgt,
-//                            this.toVar(expr, span, scope)
-//                        )
-//                    ));
-//                    scope.entries().add(action);
 
                     //  new IR.Var for the l-val using this reference
                     var targetRefValue = new IR.Ref(ident);
@@ -332,7 +310,7 @@ class Typer {
 
                     var action = new IR.Expr("$assign", new ArrayList<>(
                             List.of(
-                                    targetRefVar, // IR.Var with IR.Ref
+                                    targetRefVar,
                                     this.toVar(expr, span, scope)
                             )
                     ));
@@ -400,6 +378,7 @@ class Typer {
         // if
         IR.Scope thenScope = new IR.Scope(
             scope,
+            this.nextScopeId(),
             scope.funcName(),
             new LinkedHashMap<>(),
             new ArrayList<>()
@@ -417,6 +396,7 @@ class Typer {
         if (stmt.elseBlock().isPresent()) {
             IR.Scope elseScope = new IR.Scope(
                 scope,
+                this.nextScopeId(),
                 scope.funcName(),
                 new LinkedHashMap<>(),
                 new ArrayList<>()
@@ -467,6 +447,7 @@ class Typer {
 
         IR.Scope forScope = new IR.Scope(
             scope,
+            this.nextScopeId(),
             scope.funcName(),
             new LinkedHashMap<>(),
             new ArrayList<>()
@@ -540,6 +521,7 @@ class Typer {
 
         IR.Scope whileScope = new IR.Scope(
             scope,
+            this.nextScopeId(),
             scope.funcName(),
             new LinkedHashMap<>(),
             new ArrayList<>()
@@ -662,6 +644,7 @@ class Typer {
 
             var caseScope = new IR.Scope(
                 scope,
+                this.nextScopeId(),
                 scope.funcName(),
                 new LinkedHashMap<String, IR.Var>(),
                 new ArrayList<IR.Entry>()
@@ -698,6 +681,7 @@ class Typer {
         var newScope = new IR.Scope(
             // parent scope
             scope,
+            this.nextScopeId(),
             // func name
             name,
             // name mappings
@@ -825,6 +809,13 @@ class Typer {
 
     String formatSpan(Pair<Integer, Integer> span) {
         return SpanUtils.formatSpan(span, this.lineIndex);
+    }
+
+    Integer nextScopeId() {
+        var id = this.scopeCounter;
+        this.scopeCounter++;
+
+        return id;
     }
 
     public Typer(ST parseTree, ArrayList<Integer> lineIndex) {
