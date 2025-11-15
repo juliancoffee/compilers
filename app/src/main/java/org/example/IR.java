@@ -266,6 +266,119 @@ public record IR(
         };
     }
 
+    private static String mangle(String name, Integer id) {
+        return String.format("%s_%d", name, id);
+    }
+
+    // copy of Typer.lookupRef, but for mangling
+    private static String mangleRef(String ident, Scope scope) {
+        var rootScope = scope;
+
+        var currentScope = scope;
+        while (true) {
+            var mangled = IR.mangle(ident, currentScope.scopeId());
+            var find = currentScope.varMapping.get(mangled);
+
+            if (find != null) {
+                return mangled;
+            }
+
+            if (currentScope.parentScope() == null) {
+                var id = rootScope.scopeId();
+                throw new RuntimeException(
+                    "ref <" + ident + ">@" + id + "can't be found"
+                );
+            }
+
+            currentScope = currentScope.parentScope();
+        }
+    }
+
+    private static Value mangleValue(Value val, Scope scope) {
+        return switch (val) {
+            case Arg arg -> arg;
+            case Atom atom -> atom;
+            case Ref(String ident) -> new Ref(IR.mangleRef(ident, scope));
+            case Expr(var op, var vars) -> {
+                var newVars = new ArrayList<Var>();
+                for (var v: vars) {
+                    newVars.add(IR.mangleVar(v, scope));
+                }
+                yield new Expr(op, newVars);
+            }
+        };
+    }
+
+    private static Var mangleVar(Var v, Scope scope) {
+        return new Var(
+            IR.mangleValue(v.val(), scope),
+            v.type(),
+            v.span(),
+            v.mutable()
+        );
+    }
+
+    // make it so every variable that should be unique is, in fact, unique
+    //
+    // mutates passed Scope *in-place* and returns mutated version
+    public static Scope discriminateScopeVars(Scope scope) {
+        var mangleMap = new LinkedHashMap<String, String>();
+
+        for (var plainName: scope.varMapping().keySet()) {
+            var mangled = IR.mangle(plainName, scope.scopeId());
+            mangleMap.put(plainName, mangled);
+        }
+
+        for (var mangler: mangleMap.entrySet()) {
+            var plainName = mangler.getKey();
+            var mangled = mangler.getValue();
+
+            // add new key with the value from previous key
+            scope.varMapping.put(
+                mangled, scope.varMapping().get(plainName)
+            );
+            // remove old key, mapping[plain]
+            scope.varMapping.remove(plainName);
+        }
+
+        for (int entryIdx = 0; entryIdx < scope.entries.size(); entryIdx++) {
+            switch (scope.entries().get(entryIdx)) {
+                case NewVar(var name, var v) -> {
+                    var mangledName = IR.mangle(name, scope.scopeId());
+                    var mangledVar = IR.mangleVar(v, scope);
+                    scope.entries().set(entryIdx, new NewVar(
+                        mangledName, IR.mangleVar(v, scope)
+                    ));
+                }
+                case Expr(var op, var vars) -> {
+                    var newVars = new ArrayList<Var>();
+                    for (var v: vars) {
+                        newVars.add(IR.mangleVar(v, scope));
+                    }
+                    scope.entries().set(entryIdx, new Expr(op, newVars));
+                }
+                case Scoped scoped -> {
+                    var newBornVars = new ArrayList<String>();
+                    for (var varName: scoped.bornVars()) {
+                        newBornVars.add(
+                            IR.mangle(varName, scoped.scope().scopeId())
+                        );
+                    }
+
+                    scope.entries().set(entryIdx, new Scoped(
+                        scoped.kind(),
+                        newBornVars,
+                        scoped.dependencyValue().map(
+                            v -> IR.mangleValue(v, scoped.scope())
+                        ),
+                        IR.discriminateScopeVars(scoped.scope())
+                    ));
+                }
+            }
+        }
+        return scope;
+    }
+
     public static Scope nullifyParentScopes(Scope originalScope) {
         // Base case: if the scope is null, there's nothing to do.
         if (originalScope == null) {

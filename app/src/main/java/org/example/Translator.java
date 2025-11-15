@@ -227,8 +227,8 @@ public class Translator {
                         }
                         case BOOL -> {
                             translateValue(variable.val(), module, scope);
-                            var labelFalse = module.createLabel();
-                            var labelEnd = module.createLabel();
+                            var labelFalse = module.createLabel("toFalse");
+                            var labelEnd = module.createLabel("toEnd");
 
                             // if false, jump to labelFalse
                             module.addCode(labelFalse, "label");
@@ -447,8 +447,8 @@ public class Translator {
         }
         translateValue(thenScoped.dependencyValue().get(), module, parentScope);
 
-        String labelElse = module.createLabel();
-        String labelEnd = module.createLabel();
+        String labelElse = module.createLabel("toElse");
+        String labelEnd = module.createLabel("toIfEnd");
 
         // JF
         String targetLabelIfFalse = (elseScoped != null) ? labelElse : labelEnd;
@@ -480,8 +480,8 @@ public class Translator {
     private void translateWhileStmt(
         IR.Scoped scopedEntry, PostfixModule module, IR.Scope parentScope
     ) {
-        String labelLoop = module.createLabel();
-        String labelEnd = module.createLabel();
+        String labelLoop = module.createLabel("toLoop");
+        String labelEnd = module.createLabel("toLoopEnd");
 
         module.setLabel(labelLoop);
 
@@ -517,8 +517,8 @@ public class Translator {
             IR.Var end = expr.vars().get(1);
             IR.Var step = expr.vars().get(2);
 
-            String labelLoop = module.createLabel();
-            String labelEnd = module.createLabel();
+            String labelLoop = module.createLabel("toLoop");
+            String labelEnd = module.createLabel("toLoopEnd");
 
             // iterVar = start
             module.addCode(iterVar, "l-val");
@@ -568,7 +568,7 @@ public class Translator {
             module.addCode(":=", "assign_op");
 
             // set the label before condition check
-            String labelCheck = module.createLabel();
+            String labelCheck = module.createLabel("toLoop");
             module.setLabel(labelCheck);
 
             // countVar < LEN
@@ -577,7 +577,7 @@ public class Translator {
             module.addCode("LEN", "stack_op");
             module.addCode("<", "rel_op");
 
-            String labelEnd = module.createLabel();
+            String labelEnd = module.createLabel("toEnd");
 
             // if no, go to the end
             module.addCode(labelEnd, "label");
@@ -615,13 +615,13 @@ public class Translator {
     private void translateSwitch(
         List<IR.Scoped> cases, PostfixModule module, IR.Scope parentScope
     ) {
-        String labelEnd = module.createLabel();
+        String labelEnd = module.createLabel("toSwitchEnd");
 
         for (int i = 0; i < cases.size(); i++) {
             IR.Scoped caseScoped = cases.get(i);
 
             String labelNextCase = (i < cases.size() - 1)
-                    ? module.createLabel()
+                    ? module.createLabel("toNextCase")
                     : labelEnd;
 
             // $caseIs/Of/In condition
@@ -726,29 +726,27 @@ public class Translator {
                 .forEach(e -> System.out.printf("%-20s | %-10d\n", e.getKey(), e.getValue()));
 
         System.out.println("\n" + MAGENTA + "ТАБЛИЦЯ ІДЕНТИФІКАТОРІВ" + RESET);
-        System.out.printf("%-5s | %-15s | %-10s | %-10s\n", "Idx", "Ident", "Type", "Value");
-        System.out.println("------------------------------------------------");
+        System.out.printf("%-5s | %-25s | %-10s | %-10s\n", "Idx", "Ident", "Type", "Value");
+        System.out.println(
+            "----------------------------------------------------------"
+        );
 
         int index = 0;
         for (Map.Entry<String, String> entry : module.variables.entrySet()) {
-            System.out.printf("%-5d | %-15s | %-10s | %-10s\n",
+            System.out.printf("%-5d | %-25s | %-10s | %-10s\n",
                     index++, entry.getKey(), entry.getValue(), "undefined");
         }
 
         System.out.println("\n" + MAGENTA + "ПОСТФІКСНИЙ КОД (ПОЛІЗ)" + RESET);
-        System.out.printf("%-5s | %-15s | %-15s\n", "№", "Lexeme", "Token");
+        System.out.printf("%-5s | %-25s | %-15s\n", "№", "Lexeme", "Token");
         System.out.println("----------------------------------------------");
 
         for (int i = 0; i < module.code.size(); i++) {
             PostfixInstruction inst = module.code.get(i);
             String lexeme = inst.lexeme();
-//            if ("string".equals(inst.token())) {
-//                lexeme = "\"" + lexeme + "\"";
-//            }
-            System.out.printf("%-5d | %-15s | %-15s\n", i, lexeme, inst.token());
+            System.out.printf("%-5d | %-25s | %-15s\n", i, lexeme, inst.token());
         }
 
         System.out.printf("Постфіксний код збережено у файлі: %s.postfix\n", module.moduleName);
     }
-
 }

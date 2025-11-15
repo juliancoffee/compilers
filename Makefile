@@ -1,4 +1,4 @@
-mainJava = app/src/main/java/org/example/Translator.java
+mainJava = $(wildcard app/src/main/java/org/example/*.java)
 postfixFile = app/sample/postfix/main.postfix
 
 all: run

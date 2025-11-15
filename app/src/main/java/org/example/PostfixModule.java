@@ -43,8 +43,8 @@ class PostfixModule {
     }
 
     // use for JUMPs to, declare now, set later with setLabel()
-    public String createLabel() {
-        String label = "m" + labelCounter++;
+    public String createLabel(String name) {
+        String label = name + "$m" + labelCounter++;
         labels.put(label, -1);
         return label;
     }

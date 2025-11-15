@@ -25,7 +25,6 @@ class Typer {
      */
     ST parseTree;
     ArrayList<Integer> lineIndex;
-    private Integer iterableCount = 0;
     private Integer scopeCounter = 0;
 
     /* Typer output
@@ -461,7 +460,6 @@ class Typer {
         IR.Var countArg = null;
         var bornVars = new ArrayList<>(List.of(forName));
         if (iterType == IR.TY.STRING) {
-            this.iterableCount += 1;
 
             // to copy the iterable string
             iterableArg = new IR.Var(
@@ -470,7 +468,7 @@ class Typer {
                 span,
                 true
             );
-            storeName = "_s" + iterableCount;
+            storeName = "_store_iterable";
             bornVars.add(storeName);
 
             // to init a counter
@@ -480,7 +478,7 @@ class Typer {
                 span,
                 true
             );
-            iterCountName = "_i" + iterableCount;
+            iterCountName = "_iter_count";
             bornVars.add(iterCountName);
         }
 
@@ -794,6 +792,7 @@ class Typer {
         if (!this.hasMain) {
             throw fail(new Pair<>(1, 1), "main wasn't defined", "must be defined");
         }
+        IR.discriminateScopeVars(this.ir.scope());
     }
 
     RuntimeException fail(Pair<Integer, Integer> span, String err, String hint) {
