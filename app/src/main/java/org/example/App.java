@@ -347,7 +347,7 @@ func main() {
             var prettyrep = printerIR.print(typer.ir);
             System.err.println(prettyrep);
             System.err.println(e.getMessage());
-            throw e;
+            return;
         }
 
         var prettyrep = printerIR.print(typer.ir);
