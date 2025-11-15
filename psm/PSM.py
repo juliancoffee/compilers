@@ -89,6 +89,7 @@ class VirtualPostfixMachine:
             "bool_op",
             "cat_op",
             "stack_op",
+            "seq_op",
             "colon",
             "jf",
             "jump",
@@ -376,6 +377,8 @@ class VirtualPostfixMachine:
                 self._do_cat(token)
             elif tok_type == "stack_op":
                 self._do_stack(token)
+            elif tok_type == "seq_op":
+                self._do_seq(token)
             elif tok_type == "colon":
                 self._do_colon()
             elif tok_type == "jf":
@@ -748,7 +751,9 @@ class VirtualPostfixMachine:
             )
         elif op == "NOP":
             self._debug_print("   Нічого не робимо (NOP)")
-        elif op == "LEN":
+
+    def _do_seq(self, op: str):
+        if op == "LEN":
             lexeme, ty = self._get_1_operand("LEN")
             if ty != "string":
                 console.print(

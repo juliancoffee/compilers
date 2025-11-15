@@ -576,7 +576,7 @@ public class Translator {
             // countVar < LEN
             module.addCode(countVar, "r-val");
             module.addCode(storeVar, "r-val");
-            module.addCode("LEN", "stack_op");
+            module.addCode("LEN", "seq_op");
             module.addCode("<", "rel_op");
 
             String labelEnd = module.createLabel("toEnd");
@@ -589,7 +589,7 @@ public class Translator {
             module.addCode(iterVar, "l-val");
             module.addCode(storeVar, "r-val");
             module.addCode(countVar, "r-val");
-            module.addCode("NTH", "stack_op");
+            module.addCode("NTH", "seq_op");
             module.addCode(":=", "assign_op");
 
             // execute scope
