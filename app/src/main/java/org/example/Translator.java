@@ -283,14 +283,14 @@ public class Translator {
         switch (scoped.kind()) {
             case IF_BRANCH -> {
                 // look for ELSE_BRANCH
-                IR.Scoped elseBranch = scope.entries().stream()
-                        .skip(index + 1)
-                        .filter(
-                            e -> e instanceof IR.Scoped nextScoped
-                                && nextScoped.kind() == IR.SCOPE_KIND.ELSE_BRANCH
-                        )
-                        .map(e -> (IR.Scoped) e)
-                        .findFirst().orElse(null);
+                IR.Scoped elseBranch = null;
+                if (
+                    index != scope.entries().size() - 1
+                    && scope.entries().get(index + 1) instanceof IR.Scoped next
+                    && next.kind() == IR.SCOPE_KIND.ELSE_BRANCH
+                ) {
+                    elseBranch = next;
+                }
 
                 translateIfStmt(scoped, module, scope, elseBranch);
             }

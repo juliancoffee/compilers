@@ -89,7 +89,15 @@ func formatNum(n: Int) -> String {
                 print("post", counter, temp, 10 ** powers);
             }
         }
-        acc = acc + formatDigit(counter);
+
+        // NOTE: overflows shouldn't be possible, but
+        // leave it here to demonstrate that `if-else` works properly
+        if counter == 10 {
+            acc = acc + "10";
+            powers = powers - 1;
+        } else {
+            acc = acc + formatDigit(counter);
+        }
         if debugFormat {
             print("<>acc:" acc);
         }
