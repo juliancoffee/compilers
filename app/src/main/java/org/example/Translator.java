@@ -135,6 +135,9 @@ public class Translator {
                 case IR.Scoped scoped -> {
                     translateScopedInstruction(scoped, module, scope, i);
                 }
+                case IR.Noop _ -> {
+                    module.addCode("NOP", "stack_op");
+                }
             }
         }
     }
@@ -251,7 +254,6 @@ public class Translator {
                         }
                         case STRING -> {
                             translateValue(variable.val(), module, scope);
-                            // no cast needed
                         }
                         case VOID -> {
                             // insert new value instead of cast

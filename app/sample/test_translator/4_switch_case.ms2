@@ -15,4 +15,31 @@ func main() {
             print("Обрано: Default");
         }
     }
+
+    var anotherChoice = 5;
+    switch (anotherChoice) {
+        case 1, 5, 9 {
+            print("Обрано: Case of 1, 5, 9");
+            // NOTE: doesn't fall through
+        }
+        case range(0, 10) {
+            print("Обрано: Case in 10 to 20");
+        }
+        default {
+            print("Обрано: Default");
+        }
+    }
+
+    switch (7) {
+        case 1, 5, 9 {
+            print("Обрано: Case of 1, 5, 9");
+            // NOTE: doesn't fall through
+        }
+        case range(0, 10) {
+            print("Обрано: Case in 10 to 20");
+        }
+        default {
+            print("Обрано: Default");
+        }
+    }
 }

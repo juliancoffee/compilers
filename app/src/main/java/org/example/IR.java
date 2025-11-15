@@ -30,8 +30,10 @@ public record IR(
      * Entries
      */
     public sealed interface Entry
-        permits NewVar, Expr, Scoped {}
+        permits Noop, NewVar, Expr, Scoped {}
 
+    // Dummy Entry to stand as a separator, for example for switch statements
+    public record Noop() implements Entry {}
     public record NewVar(String name, Var v) implements Entry {}
 
     /*
@@ -374,6 +376,7 @@ public record IR(
                         IR.discriminateScopeVars(scoped.scope())
                     ));
                 }
+                case Noop noop -> {}
             }
         }
         return scope;

@@ -659,6 +659,7 @@ class Typer {
 
             typeCheckBlock(blockToCreate, caseScope);
         }
+        scope.entries().add(new IR.Noop());
     }
 
     void typeCheckFuncStmt(
@@ -760,16 +761,14 @@ class Typer {
     }
 
     boolean hasReturn(IR.Scope scope) {
-        return scope.entries().stream().map(
+        return scope.entries().stream().anyMatch(
             entry -> switch (entry) {
                 case IR.Expr e -> e.op().equals("$return");
                 case IR.Scoped s -> this.hasReturn(s.scope());
                 case IR.NewVar _ -> false;
+                case IR.Noop _ -> false;
             }
-        )
-        .filter(e -> e)
-        .findAny()
-        .isPresent();
+        );
     }
 
 
