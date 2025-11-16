@@ -252,6 +252,8 @@ public class Translator {
                             translateValue(variable.val(), module, scope);
                         }
                         case VOID -> {
+                            translateValue(variable.val(), module, scope);
+                            module.addCode("POP", "stack_op");
                             // insert new value instead of cast
                             module.addCode("", "string");
                         }
