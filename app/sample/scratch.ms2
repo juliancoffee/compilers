@@ -2,7 +2,11 @@
 // == Experiments ==
 //
 
+let x = 5;
+let y = x;
+
 func formatVoid(x: Void) -> String {
+    let z = x;
     return "()";
 }
 
@@ -29,13 +33,14 @@ func noop() {}
 
 func main() {
     let x = noop();
-    print("== Stored void ==");
-    printVoid(x);
-    smthWithVoid(5, x);
-    nestedVoid(x);
+    print("a", formatVoid(printVoid(noop())));
+    // print("== Stored void ==");
+    // printVoid(x);
+    // smthWithVoid(5, x);
+    // nestedVoid(x);
 
-    print("== Inline void ==");
-    printVoid(noop());
-    smthWithVoid(5, noop());
-    nestedVoid(noop());
+    // print("== Inline void ==");
+    // printVoid(noop());
+    // smthWithVoid(5, noop());
+    // nestedVoid(noop());
 }

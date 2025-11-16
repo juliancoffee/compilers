@@ -372,9 +372,7 @@ public class Translator {
         } else {
             // for unary operators 1 argument
             for (IR.Var v : expr.vars()) {
-                if (v != null && v.val() != null) {
-                    translateValue(v.val(), module, scope);
-                }
+                translateValue(v.val(), module, scope);
             }
         }
     }
