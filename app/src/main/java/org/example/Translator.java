@@ -361,11 +361,8 @@ public class Translator {
                         // relations
                         "<", ">", "=<", "=>", "==", "!="
                     ).contains(op)
-                    && expr.vars().stream().anyMatch(v ->
-                        v.type() == IR.TY.FLOAT
-                            ||
-                        (v.val() instanceof IR.Expr e && "**".equals(e.op()))
-                ));
+                    && expr.vars().stream().anyMatch(v -> v.type() == IR.TY.FLOAT)
+                );
 
         if (toFloat) {
             translateWithCast(expr.vars(), module, scope, IR.TY.FLOAT);
