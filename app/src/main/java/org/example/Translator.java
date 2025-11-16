@@ -66,6 +66,10 @@ public class Translator {
                 // add to .func (only those that have already been init-ed)
                 collectAllFuncs(module, availableGlobalFunctions);
                 translateScope(scoped.scope(),  module);
+
+                // in case function returns Void
+                module.addCode("0", "int");
+                module.addCode("RET", "RET");
             }
         }
 
@@ -104,11 +108,7 @@ public class Translator {
                     // this funcs local vars
                     module.addCode(newVar.name(), "l-val");
                     translateValue(newVar.v().val(), module, scope);
-                    if (newVar.v().type() == IR.TY.VOID) {
-                        module.addCode("NOP", "stack_op");
-                    } else {
-                        module.addCode(":=", "assign_op");
-                    }
+                    module.addCode(":=", "assign_op");
                 }
                 case IR.Expr expr -> {
                     translateAction(expr, module, scope);
@@ -149,7 +149,7 @@ public class Translator {
         for (Map.Entry<String, IR.Var> entry : scope.varMapping().entrySet()) {
             module.variables.putIfAbsent(
                 entry.getKey(),
-                entry.getValue().type().toString().toLowerCase()
+                Translator.machineType(entry.getValue().type())
             );
         }
 
@@ -157,7 +157,7 @@ public class Translator {
             if (entry instanceof IR.NewVar newVar) {
                 module.variables.putIfAbsent(
                     newVar.name(),
-                    newVar.v().type().toString().toLowerCase()
+                    Translator.machineType(newVar.v().type())
                 );
             } else if (
                 entry instanceof IR.Scoped scopedEntry
@@ -182,7 +182,7 @@ public class Translator {
             if (Translator.builtins.contains(opKey)) continue;
 
             IR.OpSpec spec = opEntry.getValue().alternatives().getFirst();
-            String retType = spec.returnType().toString().toLowerCase();
+            String retType = Translator.machineType(spec.returnType());
             int arity = spec.argTypes().size();
             module
                 .funcDeclarations
@@ -206,11 +206,7 @@ public class Translator {
                     "l-val"
                 );
                 translateValue(value.val(), module, scope);
-                if (value.type() == IR.TY.VOID) {
-                    module.addCode("NOP", "stack_op");
-                } else {
-                    module.addCode(":=", "assign_op");
-                }
+                module.addCode(":=", "assign_op");
             }
             case "$return" -> {
                 translateValue(expr.vars().getFirst().val(), module, scope);
@@ -298,6 +294,15 @@ public class Translator {
             case FOR -> translateForStmt(scoped, module, scope);
             case CASE_BRANCH -> {}
             default -> {}
+        }
+    }
+
+    // Translate IR type to PSM type
+    private static String machineType(IR.TY type) {
+        if (type == IR.TY.VOID) {
+            return "int";
+        } else {
+            return type.toString().toLowerCase();
         }
     }
 
