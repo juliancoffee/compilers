@@ -21,6 +21,11 @@ func nestedVoid(x: Void) {
     printVoid(x);
 }
 
+func printCallVoid(x: Void) {
+    print("> call void");
+    print("after", formatVoid(printVoid(x)));
+}
+
 func noop() {}
 
 //
@@ -33,9 +38,11 @@ func main() {
     printVoid(x);
     smthWithVoid(5, x);
     nestedVoid(x);
+    printCallVoid(x);
 
     print("== Inline void ==");
     printVoid(noop());
     smthWithVoid(5, noop());
     nestedVoid(noop());
+    printCallVoid(noop());
 }
