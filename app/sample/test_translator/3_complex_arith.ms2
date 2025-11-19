@@ -12,6 +12,7 @@ func main() {
     // 10.0 - 20.0 - (-4096.0) = -10.0 + 4096.0 = 4086.0
     let check: Double = 10.0 - 20.0 - negResult;
 
-    print("","Результат: ", check);
+    print("");
+    print("Результат: ", check);
     print("Число: ", negResult, "");
 }

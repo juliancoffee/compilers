@@ -18,7 +18,6 @@ class PostfixModule {
     public final Map<String, String> variables = new LinkedHashMap<>();
     public final List<String> globalVars = new ArrayList<>();
     public final List<FuncDeclaration> funcDeclarations = new ArrayList<>();
-    private final Map<String, String> constants = new LinkedHashMap<>();
 
     private int labelCounter = 1;
 
@@ -43,25 +42,25 @@ class PostfixModule {
         code.add(new PostfixInstruction(lexeme, token));
     }
 
-    public String createLabel() {
-        String label = "m" + labelCounter++;
+    // use for JUMPs to, declare now, set later with setLabel()
+    public String createLabel(String name) {
+        String label = name + "$m" + labelCounter++;
         labels.put(label, -1);
         return label;
     }
 
-    public void setLabelValue(String label) {
+    // specify the label previously declared
+    public void setLabel(String label) {
+        // init with instruction pointer
         if (labels.containsKey(label)) {
             labels.put(label, code.size());
         } else {
             throw new RuntimeException("Label " + label + " not created.");
         }
-    }
 
-    public void addConstant(String value, String type) {
-        String key = value + " " + type;
-        if (!constants.containsKey(key)) {
-            constants.put(key, value);
-        }
+        // add label code
+        this.addCode(label, "label");
+        this.addCode(":", "colon");
     }
 
     public void writeToFile(String baseDir) throws IOException {

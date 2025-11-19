@@ -26,7 +26,7 @@ func main() {
 
 
     let emptiness: Void = noop();
-    print("Nothing is ..", emptiness);
+    print("Nothing is ..(", emptiness, ")..");
 
 
     // Цикл for з range

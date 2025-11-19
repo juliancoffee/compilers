@@ -12,6 +12,12 @@ class Typer {
     /*
      * Type state
      */
+    private static final IR.Operator mainSpec = new IR.Operator(
+        new ArrayList<>(List.of(new IR.OpSpec(
+                new ArrayList<>(),
+                IR.TY.VOID
+            )
+        )));
     boolean hasMain = false;
 
     /*
@@ -19,6 +25,7 @@ class Typer {
      */
     ST parseTree;
     ArrayList<Integer> lineIndex;
+    private Integer scopeCounter = 0;
 
     /* Typer output
      */
@@ -27,6 +34,7 @@ class Typer {
         new IR.Scope(
             // parent scope
             null,
+            this.nextScopeId(),
             // global namespace
             "",
             // name mappings
@@ -100,23 +108,6 @@ class Typer {
             if (alt.argTypes().equals(types)) {
                 return alt.returnType();
             }
-
-            // if (alt.argTypes().size() == 2) {
-            //     IR.TY req1 = alt.argTypes().get(0);
-            //     IR.TY req2 = alt.argTypes().get(1);
-            //     IR.TY got1 = types.get(0);
-            //     IR.TY got2 = types.get(1);
-            //
-            //     // Перевірка 1: Обидва INT, потрібні FLOAT
-            //     if (req1 == IR.TY.FLOAT && req2 == IR.TY.FLOAT && got1 == IR.TY.INT && got2 == IR.TY.INT) {
-            //         return alt.returnType();
-            //     }
-            //
-            //     // Перевірка 2: Змішані типи (наприклад, [INT, FLOAT] -> [FLOAT, FLOAT])
-            //     if ((req1 == IR.TY.FLOAT && got1 == IR.TY.INT) || (req2 == IR.TY.FLOAT && got2 == IR.TY.INT)) {
-            //         return alt.returnType();
-            //     }
-            // }
         }
         throw fail(
             span,
@@ -306,13 +297,6 @@ class Typer {
                             "variable was defined at " + formatSpan(tgt.span())
                         );
                     }
-//                    var action = new IR.Expr("$assign", new ArrayList<>(
-//                        List.of(
-//                            tgt,
-//                            this.toVar(expr, span, scope)
-//                        )
-//                    ));
-//                    scope.entries().add(action);
 
                     //  new IR.Var for the l-val using this reference
                     var targetRefValue = new IR.Ref(ident);
@@ -325,7 +309,7 @@ class Typer {
 
                     var action = new IR.Expr("$assign", new ArrayList<>(
                             List.of(
-                                    targetRefVar, // IR.Var with IR.Ref
+                                    targetRefVar,
                                     this.toVar(expr, span, scope)
                             )
                     ));
@@ -393,6 +377,7 @@ class Typer {
         // if
         IR.Scope thenScope = new IR.Scope(
             scope,
+            this.nextScopeId(),
             scope.funcName(),
             new LinkedHashMap<>(),
             new ArrayList<>()
@@ -410,6 +395,7 @@ class Typer {
         if (stmt.elseBlock().isPresent()) {
             IR.Scope elseScope = new IR.Scope(
                 scope,
+                this.nextScopeId(),
                 scope.funcName(),
                 new LinkedHashMap<>(),
                 new ArrayList<>()
@@ -460,15 +446,45 @@ class Typer {
 
         IR.Scope forScope = new IR.Scope(
             scope,
+            this.nextScopeId(),
             scope.funcName(),
             new LinkedHashMap<>(),
             new ArrayList<>()
         );
 
         var forName = stmt.forIdent();
+        String storeName = null;
+        IR.Var iterableArg = null;
+
+        String iterCountName = null;
+        IR.Var countArg = null;
+        var bornVars = new ArrayList<>(List.of(forName));
+        if (iterType == IR.TY.STRING) {
+
+            // to copy the iterable string
+            iterableArg = new IR.Var(
+                new IR.Arg(iterType),
+                iterType,
+                span,
+                true
+            );
+            storeName = "_store_iterable";
+            bornVars.add(storeName);
+
+            // to init a counter
+            countArg = new IR.Var(
+                new IR.Arg(IR.TY.INT),
+                IR.TY.INT,
+                span,
+                true
+            );
+            iterCountName = "_iter_count";
+            bornVars.add(iterCountName);
+        }
+
         IR.Scoped scopedFor = new IR.Scoped(
             IR.SCOPE_KIND.FOR,
-            new ArrayList<>(List.of(forName)),
+            new ArrayList<>(bornVars),
             Optional.of(iterable),
             forScope
         );
@@ -479,7 +495,13 @@ class Typer {
             span,
             false
         );
+
         forScope.varMapping().put(forName, arg);
+        if (iterType == IR.TY.STRING) {
+            forScope.varMapping().put(storeName, iterableArg);
+            forScope.varMapping().put(iterCountName, countArg);
+        }
+
 
         scope.entries().add(scopedFor);
         typeCheckBlock(stmt.block(), forScope);
@@ -497,6 +519,7 @@ class Typer {
 
         IR.Scope whileScope = new IR.Scope(
             scope,
+            this.nextScopeId(),
             scope.funcName(),
             new LinkedHashMap<>(),
             new ArrayList<>()
@@ -619,6 +642,7 @@ class Typer {
 
             var caseScope = new IR.Scope(
                 scope,
+                this.nextScopeId(),
                 scope.funcName(),
                 new LinkedHashMap<String, IR.Var>(),
                 new ArrayList<IR.Entry>()
@@ -635,6 +659,7 @@ class Typer {
 
             typeCheckBlock(blockToCreate, caseScope);
         }
+        scope.entries().add(new IR.Noop());
     }
 
     void typeCheckFuncStmt(
@@ -655,6 +680,7 @@ class Typer {
         var newScope = new IR.Scope(
             // parent scope
             scope,
+            this.nextScopeId(),
             // func name
             name,
             // name mappings
@@ -693,29 +719,19 @@ class Typer {
             )));
 
         log.debug("[new func] " + name + " -> " + newOp);
-        if (this.ir.opStore().containsKey(name)) {
+        if (this.ir.opStore().putIfAbsent(name, newOp) != null) {
             throw fail(
                 span,
                 "re-defined function " + name,
                 "not allowed"
             );
         }
-        this.ir.opStore().put(name, newOp);
 
         if (name.equals("main")) {
             if (this.hasMain) {
                 throw fail(span, "tried to re-define main", "not allowed");
             }
-            if (!newOp.equals(new IR.Operator(
-                new ArrayList<>(
-                    List.of(
-                        new IR.OpSpec(
-                            new ArrayList<>(),
-                            IR.TY.VOID
-                        )
-                    )
-                )
-            ))) {
+            if (!newOp.equals(Typer.mainSpec)) {
                 throw fail(span,
                     "wrong main signature: " + typeArgs + " -> " + returnType,
                     "expected () -> Void");
@@ -733,28 +749,26 @@ class Typer {
             newScope.varMapping().put(p.first(), arg);
         }
         this.typeCheckBlock(stmt.block(), newScope);
-        boolean hasReturn = newScope.entries().stream()
-                .flatMap(e -> {
-                    if (e instanceof IR.Expr expr && expr.op().equals("$return")) {
-                        return Stream.of(expr);
-                    }
-                    if (e instanceof IR.Scoped innerScope) {
-                        return innerScope.scope().entries().stream()
-                                .filter(x -> x instanceof IR.Expr ex && ex.op().equals("$return"));
-                    }
-                    return Stream.empty();
-                })
-                .findAny()
-                .isPresent();
 
-        if (returnType != IR.TY.VOID && !hasReturn) {
+        if (returnType != IR.TY.VOID && !this.hasReturn(newScope)) {
             throw fail(
                     span,
                     "missing return statement",
-                    "function " + name + " must return " + returnType
+                    "non-void function " + name + " must return " + returnType
             );
         }
 
+    }
+
+    boolean hasReturn(IR.Scope scope) {
+        return scope.entries().stream().anyMatch(
+            entry -> switch (entry) {
+                case IR.Expr e -> e.op().equals("$return");
+                case IR.Scoped s -> this.hasReturn(s.scope());
+                case IR.NewVar _ -> false;
+                case IR.Noop _ -> false;
+            }
+        );
     }
 
 
@@ -777,6 +791,7 @@ class Typer {
         if (!this.hasMain) {
             throw fail(new Pair<>(1, 1), "main wasn't defined", "must be defined");
         }
+        IR.discriminateScopeVars(this.ir.scope());
     }
 
     RuntimeException fail(Pair<Integer, Integer> span, String err, String hint) {
@@ -792,6 +807,13 @@ class Typer {
 
     String formatSpan(Pair<Integer, Integer> span) {
         return SpanUtils.formatSpan(span, this.lineIndex);
+    }
+
+    Integer nextScopeId() {
+        var id = this.scopeCounter;
+        this.scopeCounter++;
+
+        return id;
     }
 
     public Typer(ST parseTree, ArrayList<Integer> lineIndex) {

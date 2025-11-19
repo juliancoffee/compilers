@@ -8,6 +8,8 @@ public record IR(
 ) {
     public record Scope(
         Scope parentScope,
+        // scopeId used for Referencing variables
+        Integer scopeId,
         // function name
         String funcName,
         // stores and mappings
@@ -28,8 +30,10 @@ public record IR(
      * Entries
      */
     public sealed interface Entry
-        permits NewVar, Expr, Scoped {}
+        permits Noop, NewVar, Expr, Scoped {}
 
+    // Dummy Entry to stand as a separator, for example for switch statements
+    public record Noop() implements Entry {}
     public record NewVar(String name, Var v) implements Entry {}
 
     /*
@@ -169,7 +173,7 @@ public record IR(
         ))));
 
         map.put("/", new Operator(new ArrayList<>(List.of(
-                new OpSpec(new ArrayList<>(List.of(INT, INT)), INT),
+                new OpSpec(new ArrayList<>(List.of(INT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), FLOAT),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), FLOAT)
@@ -195,22 +199,33 @@ public record IR(
         // --- Binary Relational Operators ---
         map.put("<", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
-                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
+                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL)
         ))));
 
         map.put("<=", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
-                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
+                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL)
         ))));
 
         map.put(">", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
-                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL)
+                new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL)
         ))));
-// TODO str?
+
         map.put(">=", new Operator(new ArrayList<>(List.of(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL)
         ))));
 
@@ -219,6 +234,8 @@ public record IR(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(BOOL, BOOL)), BOOL)
         ))));
 
@@ -226,6 +243,8 @@ public record IR(
                 new OpSpec(new ArrayList<>(List.of(INT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(FLOAT, FLOAT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(STRING, STRING)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(INT, FLOAT)), BOOL),
+                new OpSpec(new ArrayList<>(List.of(FLOAT, INT)), BOOL),
                 new OpSpec(new ArrayList<>(List.of(BOOL, BOOL)), BOOL)
         ))));
 
@@ -247,6 +266,120 @@ public record IR(
             case STRING -> IR.TY.STRING;
             case VOID -> IR.TY.VOID;
         };
+    }
+
+    private static String mangle(String name, Integer id) {
+        return String.format("%s_%d", name, id);
+    }
+
+    // copy of Typer.lookupRef, but for mangling
+    private static String mangleRef(String ident, Scope scope) {
+        var rootScope = scope;
+
+        var currentScope = scope;
+        while (true) {
+            var mangled = IR.mangle(ident, currentScope.scopeId());
+            var find = currentScope.varMapping.get(mangled);
+
+            if (find != null) {
+                return mangled;
+            }
+
+            if (currentScope.parentScope() == null) {
+                var id = rootScope.scopeId();
+                throw new RuntimeException(
+                    "ref <" + ident + ">@" + id + "can't be found"
+                );
+            }
+
+            currentScope = currentScope.parentScope();
+        }
+    }
+
+    private static Value mangleValue(Value val, Scope scope) {
+        return switch (val) {
+            case Arg arg -> arg;
+            case Atom atom -> atom;
+            case Ref(String ident) -> new Ref(IR.mangleRef(ident, scope));
+            case Expr(var op, var vars) -> {
+                var newVars = new ArrayList<Var>();
+                for (var v: vars) {
+                    newVars.add(IR.mangleVar(v, scope));
+                }
+                yield new Expr(op, newVars);
+            }
+        };
+    }
+
+    private static Var mangleVar(Var v, Scope scope) {
+        return new Var(
+            IR.mangleValue(v.val(), scope),
+            v.type(),
+            v.span(),
+            v.mutable()
+        );
+    }
+
+    // make it so every variable that should be unique is, in fact, unique
+    //
+    // mutates passed Scope *in-place* and returns mutated version
+    public static Scope discriminateScopeVars(Scope scope) {
+        var mangleMap = new LinkedHashMap<String, String>();
+
+        for (var plainName: scope.varMapping().keySet()) {
+            var mangled = IR.mangle(plainName, scope.scopeId());
+            mangleMap.put(plainName, mangled);
+        }
+
+        for (var mangler: mangleMap.entrySet()) {
+            var plainName = mangler.getKey();
+            var mangled = mangler.getValue();
+
+            // add new key with the value from previous key
+            scope.varMapping.put(
+                mangled, scope.varMapping().get(plainName)
+            );
+            // remove old key, mapping[plain]
+            scope.varMapping.remove(plainName);
+        }
+
+        for (int entryIdx = 0; entryIdx < scope.entries.size(); entryIdx++) {
+            switch (scope.entries().get(entryIdx)) {
+                case NewVar(var name, var v) -> {
+                    var mangledName = IR.mangle(name, scope.scopeId());
+                    var mangledVar = IR.mangleVar(v, scope);
+                    scope.entries().set(entryIdx, new NewVar(
+                        mangledName, IR.mangleVar(v, scope)
+                    ));
+                }
+                case Expr(var op, var vars) -> {
+                    var newVars = new ArrayList<Var>();
+                    for (var v: vars) {
+                        newVars.add(IR.mangleVar(v, scope));
+                    }
+                    scope.entries().set(entryIdx, new Expr(op, newVars));
+                }
+                case Scoped scoped -> {
+                    var newBornVars = new ArrayList<String>();
+                    for (var varName: scoped.bornVars()) {
+                        newBornVars.add(
+                            IR.mangle(varName, scoped.scope().scopeId())
+                        );
+                    }
+
+                    scope.entries().set(entryIdx, new Scoped(
+                        scoped.kind(),
+                        newBornVars,
+                        scoped.dependencyValue().map(
+                            v -> IR.mangleValue(v, scoped.scope())
+                        ),
+                        IR.discriminateScopeVars(scoped.scope())
+                    ));
+                }
+                case Noop noop -> {}
+            }
+        }
+        return scope;
     }
 
     public static Scope nullifyParentScopes(Scope originalScope) {
@@ -288,6 +421,7 @@ public record IR(
         // is the new one we just built.
         return new IR.Scope(
             null, // The core purpose of the function.
+            originalScope.scopeId(),
             originalScope.funcName(),
             originalScope.varMapping(),
             newEntries

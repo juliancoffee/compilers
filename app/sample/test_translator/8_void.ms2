@@ -1,0 +1,48 @@
+//
+// == Experiments ==
+//
+
+func formatVoid(x: Void) -> String {
+    return "()";
+}
+
+func printVoid(x: Void) {
+    print("> print void");
+    print("empty:", formatVoid(x));
+}
+
+func smthWithVoid(a: Int, x: Void) {
+    print("> print multiple");
+    print(a, formatVoid(x), a);
+}
+
+func nestedVoid(x: Void) {
+    print("> print nested");
+    printVoid(x);
+}
+
+func printCallVoid(x: Void) {
+    print("> call void");
+    print("after", formatVoid(printVoid(x)));
+}
+
+func noop() {}
+
+//
+// == Main ==
+//
+
+func main() {
+    let x = noop();
+    print("== Stored void ==");
+    printVoid(x);
+    smthWithVoid(5, x);
+    nestedVoid(x);
+    printCallVoid(x);
+
+    print("== Inline void ==");
+    printVoid(noop());
+    smthWithVoid(5, noop());
+    nestedVoid(noop());
+    printCallVoid(noop());
+}
