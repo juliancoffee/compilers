@@ -253,6 +253,9 @@ public record IR(
                 // No arguments, returns a STRING
                 new OpSpec(new ArrayList<>(), STRING)
         ))));
+        map.put("throw", new Operator(new ArrayList<>(List.of(
+                new OpSpec(new ArrayList<>(List.of(STRING)), VOID)
+        ))));
 
         // Return the populated, ordered map
         return map;

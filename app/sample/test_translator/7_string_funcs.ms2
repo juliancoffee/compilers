@@ -59,7 +59,7 @@ func formatDigit(n: Int) -> String {
         }
         default {
             print("ERROR:", n, "is not a digit!");
-            let x = 1 / 0;
+            throw("let x = 1 / 0;");
         }
     }
 }
@@ -118,7 +118,7 @@ func charAt(s: String, n: Int) -> String {
     }
 
     print("ERROR: string", wrap(s), "has no", formatNum(n) + "th character");
-    let x = 1 / 0;
+    throw("let x = 1 / 0;");
 }
 
 func isPrefix(prefix: String, whole: String) -> Bool {
@@ -186,7 +186,7 @@ func parseDigit(ch: String) -> Int {
         }
         default {
             print("ERROR:", wrap(ch), "is not a digit!");
-            let x = 1 / 0;
+            throw("let x = 1 / 0;");
         }
     }
 }
