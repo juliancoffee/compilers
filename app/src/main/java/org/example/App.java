@@ -3,6 +3,7 @@ package org.example;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import com.google.gson.GsonBuilder;
@@ -151,151 +152,49 @@ class App {
 
     public static void main(String[] args) throws IOException {
         String code;
+        String inputFileName = "fromCode";
+
         if (args.length > 0) {
-            code = Files.readString(
-                Paths.get(args[0]),
-                StandardCharsets.UTF_8
-            );
+            Path path = Paths.get(args[0]);
+            code = Files.readString(path, StandardCharsets.UTF_8);
 
             if (code == null) {
                 System.err.println("Cannot find file: " + args[0]);
                 System.err.println(System.getProperty("user.dir"));
                 return;
             }
+            inputFileName = path.getFileName().toString();
+            int dotIndex = inputFileName.lastIndexOf('.');
+            if (dotIndex > 0) {
+                inputFileName = inputFileName.substring(0, dotIndex);
+            }
         } else {
             // Default code
             code = """
-let y = 5 + 6;
-func noop() -> Void {
-    let x = 5;
-//    printPi();
-//    printSum(x, y);
-    print(x, y);
-}
-let fix = false;
-func main(){
-    var counter = 0;
-    let counter2 = 0;
-    while counter < 5  {
-        print("Counter = ", counter);
-        counter = counter + 1;
-        if counter < 0{
-            print(counter);
-        }else{
-           print(counter+10);
-        }
-    }
-    counter = counter - 2;
-}
-""";
-            code = """
-let y: Bool = false;
+let debugNums = false;
+let debugFormat = false;
+func wrap(s: String) -> String { return "'" + s + "'"; }
 
-func oneF(x: String)->String{
-    var one = "hello";
-    one = one + x;
-    print(y);
-    return one;
-}
-func main() {
-    let x = 1+2**3**4;
-    if x > 0.0{
-        print(x);
-    }else{
-       print(x+10);
-    }
-    if x != 0.0{
-        print(x);
-    }
-    var two = "x_fake";
-    print(oneF(two));
-
+func len(s: String) -> Int {
     var counter = 0;
-    while counter < 5  {
-        print("Counter = ", counter);
+    for char in s {
         counter = counter + 1;
     }
+    return counter;
+}
+
+func testLen() {
+    print("== Length ==");
+    let nums = "12345";
+    print("Len of", wrap(nums), "=", len(nums));
+    print("Len of", wrap(""), "=", len(""));
+}
+
+
+func main() {
+    testLen();
 }
 """;
-////            code = """
-//func noop() -> Void {}
-//func simpleNoop() {}
-//func getName() -> String { return input(); }
-//func sumSquared(x: Double, y: Double) -> String { return x * x + y * y; }
-//""";
-//            code = """
-//let x = square(1 + square(2));
-//""";
-//            code = """
-//    let x = 5;
-//
-//func main() {
-//    var y = "input()"+"hello";
-//
-//    // Цикл for з range
-//    for i in range(0, 6, 1) {
-//        print("For loop iteration: ", i);
-//    }
-//
-//    // Цикл for з str
-//    for c in "hello" {
-//        print("For loop iteration: ", c);
-//    }
-//}
-//""";
-//            code = """
-//let flag: Bool = true;
-//func add(a: Int, b: Int) -> Int {
-//    return -a + b;
-//}
-//func main() {
-//    var sum: Int = add(10, 20);
-//    print("Sum = ", sum);
-//
-//
-//    // Логічні вирази
-//    var isBig: Bool = sum > 25 && flag || !flag;
-//    print("isBig = ", isBig);
-//    let a: Int = 5;
-//    let b: Int = 10;
-//    if a != b {
-//        print("equal");
-//    }
-//}
-//////////""";
-            code = """
-func add(a: Int, b: Int) -> Int {
-    return a + b;
-}
-func main() {
-    // Використання switch
-    // let choice: Int = 3;
-    // switch choice {
-    //     case 5, 4, 6 {
-    //         print("Choice is 5 or 4 or 6");
-    //     }
-    //     case 1 {
-    //         print("Choice is 1");
-    //     }
-    //     case range(0, 3) {
-    //         print("Choice is 2 or 3");
-    //     }
-    //     default {
-    //         print("Choice is something else");
-    //     }
-    // }
-
-    let pi: Double = 3.14;
-    let flag: Bool = true;
-    if flag == false {
-        print("Flag is true and pi > 3");
-    } else {
-        print("Condition not met, flag = ", flag);
-    }
-    var result: Double = (pi + 2.0) * 3.0 / 2.0 - 1.0;
-    print("Result: ", result);
-}
-//""";
         }
 
         var lexer = new Lexer(code);
@@ -355,14 +254,24 @@ func main() {
         System.out.println("\nПрограма пройшла всі етапи аналізу успішно!");
 
         // ГЕНЕРАЦІЯ POSTFIX
-        var translator = new Translator(typer.ir);
-        String outputDir = "sample/postfix";
-        String mainModule = "main";
+//        var translator = new Translator(typer.ir);
+//        String outputDir = "sample/postfix";
+//        String mainModule = "main";
+//        try {
+//            translator.generate(outputDir);
+//            System.out.println("\nГенерація postfix коду завершена успішно!");
+//        } catch (IOException e) {
+//            System.err.println("\nПомилка під час генерації postfix коду: " + e.getMessage());
+//            return;
+//        }
+
+        var translator = new TranslatorJVM(typer.ir, inputFileName);
+        String outputDir = "sample/jvm/in";
         try {
             translator.generate(outputDir);
-            System.out.println("\nГенерація postfix коду завершена успішно!");
+            System.out.println("\nГенерація JVM асемблерного файлу (.j) завершена успішно!");
         } catch (IOException e) {
-            System.err.println("\nПомилка під час генерації postfix коду: " + e.getMessage());
+            System.err.println("\nПомилка під час генерації .j файлу: " + e.getMessage());
             return;
         }
 
@@ -371,4 +280,3 @@ func main() {
 //./gradlew run --args="sample/basic.ms2"
 //./gradlew run
 //./gradlew run --args="sample/test_errors/01_missing_terminal.ms2"
-// python3 psm.py -p app/sample/postfix -m main

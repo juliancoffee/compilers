@@ -55,7 +55,7 @@ func parseDigit(ch: String) -> Int {
         }
         default {
             print("ERROR:", wrap(ch), "is not a digit!");
-            let x = 1 / 0;
+            throw("let x = 1 / 0;");
         }
     }
 }
