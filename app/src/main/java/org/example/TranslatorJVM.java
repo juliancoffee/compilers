@@ -90,9 +90,18 @@ public class TranslatorJVM {
     // Static fields generation
     // --------------------------
     private void generateStaticFields(FileWriter writer, IR.Scope globalScope) throws IOException {
-        for (Map.Entry<String, IR.Var> entry : globalScope.varMapping().entrySet()) {
+        for (
+            Map.Entry<String, IR.Var> entry
+            :
+            globalScope.varMapping().entrySet()
+        ) {
             IR.Var var = entry.getValue();
-            writer.write(".field public static " + entry.getKey() + " " + jvmType(var.type()) + "\n");
+            writer
+                .write(
+                    ".field public static "
+                    + entry.getKey() + " " + jvmType(var.type())
+                    + "\n"
+                );
         }
         writer.write("\n");
     }
@@ -100,7 +109,11 @@ public class TranslatorJVM {
     // --------------------------
     // Method generation
     // --------------------------
-    private void generateMethod(FileWriter writer, IR.Scoped methodScoped, IR.Scope globalScope) throws IOException {
+    private void generateMethod(
+        FileWriter writer,
+        IR.Scoped methodScoped,
+        IR.Scope globalScope
+    ) throws IOException {
         IR.Scope methodScope = methodScoped.scope();
         String funcName = methodScope.funcName();
 
@@ -275,22 +288,41 @@ public class TranslatorJVM {
         for (int i = 0; i < expr.vars().size(); i++) {
             IR.Var arg = expr.vars().get(i);
 
-            // VOID, print empty string
+            var last = (i == expr.vars().size() - 1);
+            String method = last ? "println" : "print";
+
+            // load PrintStream and duplicate it for padding
             writer.write("        getstatic Field java/lang/System out Ljava/io/PrintStream;\n");
+
+            if (!last) {
+                this.dup(writer);
+            }
+
+            // if VOID, print empty string
+            // TODO: probably will need to evaluate it though
             if (arg.type() == IR.TY.VOID) {
                 writer.write("        ldc \"\"\n");
-                writer.write("        invokevirtual Method java/io/PrintStream print (Ljava/lang/String;)V\n");
+                writer.write(
+                    "        invokevirtual Method java/io/PrintStream "
+                    + method
+                    + " (Ljava/lang/String;)V\n");
                 continue;
             }
 
+
             translateValue(writer, arg.val());
 
-            String method = (i == expr.vars().size() - 1) ? "println" : "print";
             if (arg.type() == IR.TY.STRING) {
                 writer.write("        invokevirtual Method java/io/PrintStream " + method + " (Ljava/lang/String;)V\n");
             } else {
                 String typeDesc = jvmType(arg.type());
                 writer.write("        invokevirtual Method java/io/PrintStream " + method + " (" + typeDesc + ")V\n");
+            }
+
+            // add "padding"
+            if (!last) {
+                writer.write("        ldc \" \"\n");
+                writer.write("        invokevirtual Method java/io/PrintStream print (Ljava/lang/String;)V\n");
             }
         }
     }
@@ -590,12 +622,13 @@ public class TranslatorJVM {
 
         if (op.equals("input")) {
             writer.write("        new java/util/Scanner\n");
-            writer.write("        dup\n");
+            this.dup(writer);
             writer.write("        getstatic Field java/lang/System in Ljava/io/InputStream;\n");
             writer.write("        invokespecial Method java/util/Scanner <init> (Ljava/io/InputStream;)V\n");
             writer.write("        invokevirtual Method java/util/Scanner nextLine ()Ljava/lang/String;\n");
             return;
         }
+
         // UDF call
         if (ir.opStore().containsKey(op) && !isBuiltin(op)) {
             for (IR.Var v : expr.vars()) {
@@ -871,9 +904,13 @@ public class TranslatorJVM {
         IR.Var message = expr.vars().getFirst();
 
         writer.write("        new java/lang/RuntimeException\n");
-        writer.write("        dup\n");
+        this.dup(writer);
         translateValue(writer, message.val()); // помістити рядок на стек
         writer.write("        invokespecial Method java/lang/RuntimeException <init> (Ljava/lang/String;)V\n");
         writer.write("        athrow\n");
+    }
+
+    private void dup(FileWriter writer) throws IOException {
+        writer.write("        dup\n");
     }
 }

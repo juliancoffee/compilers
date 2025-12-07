@@ -3,7 +3,7 @@ postfixFile = app/sample/postfix/main.postfix
 
 all: runChain
 
-runChain: target = "sample/test_translator/7_string_funcs.ms2"
+runChain: target = "sample/test_translator/1_recursion.ms2"
 runChain:
 	gradle runChain -Ptarget=$(target) --console=plain
 
