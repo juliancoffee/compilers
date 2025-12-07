@@ -583,7 +583,7 @@ public class TranslatorJVM {
                     try {
                         double d = Double.parseDouble(val);
                         if (Math.abs(d) < 0.001 || Math.abs(d) > 1000000) {
-                            val = String.format("%.10f", d);
+                            val = String.format(Locale.US, "%.10f", d);
                         } else {
                             val = String.valueOf(d);
                         }
