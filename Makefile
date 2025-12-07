@@ -44,6 +44,10 @@ jparse: target = "sample/test_translator/9_parse_string.ms2"
 jparse:
 	gradle runChain -Ptarget=$(target) --console=plain
 
+jclean: target = "sample/test_translator/10_stack_cleanup.ms2"
+jclean:
+	gradle runChain -Ptarget=$(target) --console=plain
+
 jsimple: target = "sample/simple.ms2"
 jsimple:
 	gradle runChain -Ptarget=$(target) --console=plain
@@ -52,7 +56,15 @@ jbasic: target = "sample/basic.ms2"
 jbasic:
 	gradle runChain -Ptarget=$(target) --console=plain
 
-jAllTest: jrec jflow jarith jswitch jconcatAndScope jforStmt jstrings jvoid jparse
+jAllTest: jrec \
+		jflow \
+		jarith \
+		jswitch \
+		jconcatAndScope \
+		jforStmt \
+		jstrings \
+		jvoid \
+		jparse
 
 # == PSM
 runPSM: $(postfixFile)

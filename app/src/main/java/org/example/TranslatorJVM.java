@@ -283,7 +283,19 @@ public class TranslatorJVM {
             case "$return" -> translateReturn(writer, expr);
             case "throw" -> generateThrow(writer, expr);
             default -> {
+                // this must be a function call
                 translateExpression(writer, expr);
+
+                String op = expr.op();
+                IR.OpSpec spec = ir.opStore().get(op).alternatives().getFirst();
+
+                // cleanup, double take two slots
+                if (spec.returnType() == IR.TY.FLOAT) {
+                     writer.write("        pop2\n");
+                } else {
+                     // yes, void functions need cleanup too, cause voids are real
+                     writer.write("        pop\n");
+                }
             }
         }
     }
