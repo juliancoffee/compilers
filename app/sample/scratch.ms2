@@ -1,61 +1,9 @@
-//
-// == Experiments ==
-//
-func floorInt(n: Double) -> Int {
-    var isNegative: Bool = false;
-    var result: Int = 0;
-    var temp: Double = n;
-    if n < 0.0 {
-        isNegative = true;
-        temp = 0.0 - n;
-    }
-    while temp >= 1.0 {
-        temp = temp - 1.0;
-        result = result + 1;
-    }
-    if isNegative {
-        return 0 - result;
-    } else {
-        return result;
-    }
-}
-
-func formatVoid(x: Void) -> String {
-    return "()";
-}
-
-func printVoid(x: Void) {
-    print("> print void");
-    print("empty:", formatVoid(x));
-}
-
-func smthWithVoid(a: Int, x: Void) {
-    print("> print multiple");
-    print(a, formatVoid(x), a);
-}
-
-func nestedVoid(x: Void) {
-    print("> print nested");
-    printVoid(x);
-}
-
-func noop() {}
-
-//
-// == Main ==
-//
-
 func main() {
-    let x = noop();
-    print("== Stored void ==");
-    printVoid(x);
-    smthWithVoid(5, x);
-    nestedVoid(x);
+    var counter = 0;
+    let limit = 10;
 
-    print("== Inline void ==");
-    printVoid(noop());
-    smthWithVoid(5, noop());
-    nestedVoid(noop());
-
-    print(floorInt(2.13));
+    while (counter <= limit) {
+        print(counter);
+        counter = counter + 2;
+    }
 }

@@ -12,6 +12,7 @@ func add(a: Int, b: Int) -> Int {
 func greetUser(name: String) {
     print("Hello, ", name);
 }
+
 // порожня функція з явним Void
 func noop() -> Void {}
 
