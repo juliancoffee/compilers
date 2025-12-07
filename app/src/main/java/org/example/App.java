@@ -166,7 +166,7 @@ class App {
             inputFileName = path.getFileName().toString();
             int dotIndex = inputFileName.lastIndexOf('.');
             if (dotIndex > 0) {
-                inputFileName = inputFileName.substring(0, dotIndex);
+                inputFileName = "_" + inputFileName.substring(0, dotIndex);
             }
         } else {
             // Default code
