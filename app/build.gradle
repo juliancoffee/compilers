@@ -84,3 +84,66 @@ application {
     // Define the main class for the application.
     mainClass = 'org.example.App'
 }
+
+// custom command to run a MS2 compiler chain
+import javax.inject.Inject
+
+abstract class RunChainTask extends DefaultTask {
+
+    @Inject
+    abstract ExecOperations getExecOps()
+
+    @Input
+    abstract Property<String> getTargetFile()
+
+    @Input
+    abstract Property<String> getCompilerEntry()
+
+    @InputFiles
+    abstract ConfigurableFileCollection getCompilerClasspath()
+
+    @TaskAction
+    void execute() {
+        if (!targetFile.isPresent()) {
+            throw new GradleException("Usage: gradle runChain -Ptarget=path/to/file")
+        }
+
+        String targetPath = targetFile.get()
+
+        println ">>> 1. Compiling ${targetPath}..."
+        getExecOps().javaexec {
+            it.classpath = getCompilerClasspath()
+            it.mainClass = getCompilerEntry()
+            it.args = [targetPath]
+        }
+
+        String target = new File(targetPath)
+                    .getName()
+                    .replaceFirst(~/\.[^\.]+$/, '')
+
+        println ">>> 2. Assembling... ${target}"
+        getExecOps().exec {
+            // Ensure krak2 is in PATH or use absolute path
+            it.commandLine 'krak2', 'asm',
+                           '--out', "sample/jvm/out/_${target}.class",
+                           "sample/jvm/in/_${target}.j"
+        }
+
+        println ">>> 3. Running JVM..."
+        getExecOps().exec {
+            it.commandLine 'java',
+                           '-cp', 'sample/jvm/out',
+                           "_${target}"
+
+            standardInput = System.in
+            standardOutput = System.out
+        }
+    }
+}
+
+tasks.register('runChain', RunChainTask) {
+    targetFile = providers.gradleProperty('target')
+
+    compilerEntry.set(application.mainClass)
+    compilerClasspath.from(sourceSets.main.runtimeClasspath)
+}

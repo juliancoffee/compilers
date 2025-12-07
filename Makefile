@@ -1,9 +1,13 @@
 mainJava = $(wildcard app/src/main/java/org/example/*.java)
 postfixFile = app/sample/postfix/main.postfix
 
-all: run
+all: runChain
 
-run: $(postfixFile)
+runChain: target = "sample/test_translator/7_string_funcs.ms2"
+runChain:
+	gradle runChain -Ptarget=$(target) --console=plain
+
+runPSM: $(postfixFile)
 	@echo "============="
 	python3 psm/PSM.py -p app/sample/postfix -m main
 
