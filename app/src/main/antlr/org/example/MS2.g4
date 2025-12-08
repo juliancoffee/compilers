@@ -110,20 +110,50 @@ comparator
 // --- Expressions ---
 // Ordered by precedence (lowest at top, highest at bottom)
 
-expr
-    : expr '**' expr                       # Power
-    | op=('+'|'-'|'!') expr                # Unary
-    | expr op=('*'|'/') expr               # MulDiv
-    | expr op=('+'|'-') expr               # AddSub
-    | expr op=('<'|'<='|'>'|'>=') expr     # Relational
-    | expr op=('=='|'!=') expr             # Equality
-    | expr '&&' expr                       # And
-    | expr '||' expr                       # Or
-    // Atoms (highest precedence)
-    | callExpr                             # Call
-    | ID                                   # Id
-    | literal                              # Lit
-    | '(' expr ')'                         # Paren
+// The entry point to the expression hierarchy
+expr: expression;
+expression : logicExpr;
+
+// Rule 1: Logic (Lowest Precedence)
+logicExpr
+    // Uses the Logic operators defined in the Lexer
+    : relExpr (('&&' | '||') relExpr)*
+    ;
+
+// Rule 2: Relational and Equality
+relExpr
+    // Uses the Relational operators defined in the Lexer
+    : arithExpr (relOp arithExpr)?
+    ;
+
+// Rule 3: Additive (Term {+|-} Term)
+arithExpr
+    : term (('+' | '-') term)*
+    ;
+
+// Rule 4: Multiplicative (Power {*|/} Power)
+term
+    : power (('*' | '/') power)*
+    ;
+
+// Rule 5: Exponentiation (Highest Binary Precedence)
+power
+    // Uses RIGHT-RECURSION to guarantee 2**(3**2) = 512
+    : factor ('**' power)?
+    ;
+
+// Rule 6: Factor (Unary and Atoms)
+factor
+    : ('+' | '-' | '!') factor      # UnaryFactor
+    | callExpr                      # CallFactor
+    | ID                            # IdentFactor
+    | literal                       # LitFactor
+    | '(' expression ')'            # ParenFactor
+    ;
+
+// Helper Rules
+relOp 
+    : '==' | '!=' | '<' | '<=' | '>' | '>='
     ;
 
 callExpr

@@ -1,12 +1,4 @@
-func addDouble() -> Double {
-    return 5.0;
-}
-
-func add() -> Int {
-    return 5;
-}
-
 func main() {
-    let x = add();
+    let x = 2 ** 3 ** 2;
     print(x);
 }
