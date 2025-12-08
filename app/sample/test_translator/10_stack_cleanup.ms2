@@ -3,14 +3,18 @@ func addDouble() -> Double {
 }
 
 func add() -> Int {
-    return 5.0;
+    return 5;
 }
 
 func main() {
-    while (1 < 2) {
+    var x = 0;
+    while (x < 10 ** 8) {
+        x = x + 1;
         addDouble();
     }
-    while (1 < 2) {
+    x = 0;
+    while (x < 10 ** 8) {
+        x = x + 1;
         add();
     }
 }

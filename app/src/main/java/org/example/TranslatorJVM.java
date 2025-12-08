@@ -80,7 +80,9 @@ public class TranslatorJVM {
 
     private void generateGlobalMethods(FileWriter writer, IR.Scope globalScope) throws IOException {
         for (IR.Entry entry : globalScope.entries()) {
-            if (entry instanceof IR.Scoped scoped && scoped.kind() == IR.SCOPE_KIND.FUN) {
+            if (entry instanceof IR.Scoped scoped
+                && scoped.kind() == IR.SCOPE_KIND.FUN
+            ) {
                 generateMethod(writer, scoped, globalScope);
             }
         }
@@ -90,9 +92,18 @@ public class TranslatorJVM {
     // Static fields generation
     // --------------------------
     private void generateStaticFields(FileWriter writer, IR.Scope globalScope) throws IOException {
-        for (Map.Entry<String, IR.Var> entry : globalScope.varMapping().entrySet()) {
+        for (
+            Map.Entry<String, IR.Var> entry
+            :
+            globalScope.varMapping().entrySet()
+        ) {
             IR.Var var = entry.getValue();
-            writer.write(".field public static " + entry.getKey() + " " + jvmType(var.type()) + "\n");
+            writer
+                .write(
+                    ".field public static "
+                    + entry.getKey() + " " + jvmType(var.type())
+                    + "\n"
+                );
         }
         writer.write("\n");
     }
@@ -100,7 +111,11 @@ public class TranslatorJVM {
     // --------------------------
     // Method generation
     // --------------------------
-    private void generateMethod(FileWriter writer, IR.Scoped methodScoped, IR.Scope globalScope) throws IOException {
+    private void generateMethod(
+        FileWriter writer,
+        IR.Scoped methodScoped,
+        IR.Scope globalScope
+    ) throws IOException {
         IR.Scope methodScope = methodScoped.scope();
         String funcName = methodScope.funcName();
 
@@ -116,7 +131,6 @@ public class TranslatorJVM {
                 .map(TranslatorJVM::jvmType)
                 .collect(Collectors.joining());
         String returnDescriptor = jvmType(spec.returnType());
-        if (spec.returnType() == IR.TY.VOID) returnDescriptor = "V";
 
         if (funcName.equals("main")) {
             argsDescriptor = "[Ljava/lang/String;";
@@ -160,8 +174,11 @@ public class TranslatorJVM {
 
     private void writeMethodReturn(FileWriter writer, IR.OpSpec spec, String funcName) throws IOException {
         IR.TY ret = spec.returnType();
-        if (ret == IR.TY.VOID || funcName.equals("main")) {
+        if (funcName.equals("main")) {
             writer.write("        return\n");
+        } else if (ret == IR.TY.VOID) {
+            writer.write("        ldc 0\n");
+            writer.write("        ireturn\n");
         } else if (ret == IR.TY.INT || ret == IR.TY.BOOL) {
             writer.write("        ireturn\n");
         } else if (ret == IR.TY.FLOAT) {
@@ -266,7 +283,19 @@ public class TranslatorJVM {
             case "$return" -> translateReturn(writer, expr);
             case "throw" -> generateThrow(writer, expr);
             default -> {
+                // this must be a function call
                 translateExpression(writer, expr);
+
+                String op = expr.op();
+                IR.OpSpec spec = ir.opStore().get(op).alternatives().getFirst();
+
+                // cleanup, double take two slots
+                if (spec.returnType() == IR.TY.FLOAT) {
+                     writer.write("        pop2\n");
+                } else {
+                     // yes, void functions need cleanup too, cause voids are real
+                     writer.write("        pop\n");
+                }
             }
         }
     }
@@ -275,22 +304,40 @@ public class TranslatorJVM {
         for (int i = 0; i < expr.vars().size(); i++) {
             IR.Var arg = expr.vars().get(i);
 
-            // VOID, print empty string
+            var last = (i == expr.vars().size() - 1);
+            String method = last ? "println" : "print";
+
+            // load PrintStream and duplicate it for padding
             writer.write("        getstatic Field java/lang/System out Ljava/io/PrintStream;\n");
-            if (arg.type() == IR.TY.VOID) {
-                writer.write("        ldc \"\"\n");
-                writer.write("        invokevirtual Method java/io/PrintStream print (Ljava/lang/String;)V\n");
-                continue;
+
+            if (!last) {
+                this.dup(writer);
             }
 
-            translateValue(writer, arg.val());
-
-            String method = (i == expr.vars().size() - 1) ? "println" : "print";
             if (arg.type() == IR.TY.STRING) {
+                translateValue(writer, arg.val());
                 writer.write("        invokevirtual Method java/io/PrintStream " + method + " (Ljava/lang/String;)V\n");
+            } else if (arg.type() == IR.TY.VOID) {
+                // eval it anyway, then drop the result
+                translateValue(writer, arg.val());
+                writer.write("        pop\n");
+
+                // if VOID, print empty string
+                writer.write("        ldc \"\"\n");
+                writer.write(
+                    "        invokevirtual Method java/io/PrintStream "
+                    + method
+                    + " (Ljava/lang/String;)V\n");
             } else {
+                translateValue(writer, arg.val());
                 String typeDesc = jvmType(arg.type());
                 writer.write("        invokevirtual Method java/io/PrintStream " + method + " (" + typeDesc + ")V\n");
+            }
+
+            // add "padding"
+            if (!last) {
+                writer.write("        ldc \" \"\n");
+                writer.write("        invokevirtual Method java/io/PrintStream print (Ljava/lang/String;)V\n");
             }
         }
     }
@@ -298,12 +345,6 @@ public class TranslatorJVM {
     private void translateAssign(FileWriter writer, IR.Expr expr) throws IOException {
         IR.Var target = expr.vars().get(0);
         IR.Var value = expr.vars().get(1);
-
-        // If assigning to VOID - evaluate RHS but don't store
-        if (target.type() == IR.TY.VOID) {
-            translateValue(writer, value.val());
-            return;
-        }
 
         String varName = ((IR.Ref) target.val()).ident();
         translateValue(writer, value.val());
@@ -318,9 +359,7 @@ public class TranslatorJVM {
     private void translateReturn(FileWriter writer, IR.Expr expr) throws IOException {
         translateValue(writer, expr.vars().getFirst().val());
         IR.TY type = expr.vars().getFirst().type();
-        if (type == IR.TY.VOID) {
-            writer.write("        return\n");
-        } else if (type == IR.TY.INT || type == IR.TY.BOOL) {
+        if (type == IR.TY.INT || type == IR.TY.BOOL || type == IR.TY.VOID) {
             writer.write("        ireturn\n");
         } else if (type == IR.TY.FLOAT) {
             writer.write("        dreturn\n");
@@ -551,7 +590,7 @@ public class TranslatorJVM {
                     try {
                         double d = Double.parseDouble(val);
                         if (Math.abs(d) < 0.001 || Math.abs(d) > 1000000) {
-                            val = String.format("%.10f", d);
+                            val = String.format(Locale.US, "%.10f", d);
                         } else {
                             val = String.valueOf(d);
                         }
@@ -564,17 +603,20 @@ public class TranslatorJVM {
                 case VOID -> {}
             }
         } else if (value instanceof IR.Ref(String ident)) {
-            boolean isVoidLocal = localVarMap.containsKey(ident) && localVarMap.get(ident).type() == IR.TY.VOID;
-            boolean isVoidGlobal = !isVoidLocal && ir.scope().varMapping().containsKey(ident) && ir.scope().varMapping().get(ident).type() == IR.TY.VOID;
-
-            if (isVoidLocal || isVoidGlobal) {
-                writer.write("        iconst_0\n"); // placeholder for void argument
-                return;
-            }
+            // boolean isVoidLocal = localVarMap.containsKey(ident) && localVarMap.get(ident).type() == IR.TY.VOID;
+            // boolean isVoidGlobal = !isVoidLocal && ir.scope().varMapping().containsKey(ident) && ir.scope().varMapping().get(ident).type() == IR.TY.VOID;
+            //
+            // if (isVoidLocal || isVoidGlobal) {
+            //     writer.write("        iconst_0\n"); // placeholder for void argument
+            //     return;
+            // }
 
             if (localVarMap.containsKey(ident)) {
                 loadVar(writer, ident);
-            } else if (ir.scope().varMapping().containsKey(ident) && ir.scope().varMapping().get(ident).type() != IR.TY.VOID) {
+            } else if (
+                ir.scope().varMapping().containsKey(ident)
+                    && ir.scope().varMapping().get(ident).type() != IR.TY.VOID
+            ) {
                 IR.Var globalVar = ir.scope().varMapping().get(ident);
                 if (globalVar != null) {
                     writer.write("        getstatic Field " + className + " " + ident + " " + jvmType(globalVar.type()) + "\n");
@@ -585,29 +627,56 @@ public class TranslatorJVM {
         }
     }
 
+    private void translateInput(FileWriter writer) throws IOException {
+        writer.write("        getstatic Field java/lang/System out Ljava/io/PrintStream;\n");
+        writer.write("        ldc \"> \"\n");
+        writer.write(
+            "        invokevirtual Method java/io/PrintStream "
+            + "print"
+            + " (Ljava/lang/String;)V\n");
+
+        writer.write("        new java/util/Scanner\n");
+        this.dup(writer);
+        writer.write("        getstatic Field java/lang/System in Ljava/io/InputStream;\n");
+        writer.write("        invokespecial Method java/util/Scanner <init> (Ljava/io/InputStream;)V\n");
+        writer.write("        invokevirtual Method java/util/Scanner nextLine ()Ljava/lang/String;\n");
+        return;
+    }
+
+    private void translateFuncCall(
+        FileWriter writer, String op, IR.Expr expr
+    ) throws IOException {
+        for (IR.Var v : expr.vars()) {
+            translateValue(writer, v.val());
+        }
+        IR.OpSpec spec = ir.opStore().get(op).alternatives().getFirst();
+        String desc = jvmMethodDescriptor(spec.returnType(), spec.argTypes());
+        writer.write(
+            "        invokestatic Method "
+            + className
+            + " "
+            + op
+            + " "
+            + desc
+            + "\n"
+        );
+        // if (spec.returnType() == IR.TY.VOID) {
+        //     // placeholder if used inline
+        //     writer.write("        iconst_0\n");
+        // }
+    }
+
     private void translateExpression(FileWriter writer, IR.Expr expr) throws IOException {
         String op = expr.op();
 
         if (op.equals("input")) {
-            writer.write("        new java/util/Scanner\n");
-            writer.write("        dup\n");
-            writer.write("        getstatic Field java/lang/System in Ljava/io/InputStream;\n");
-            writer.write("        invokespecial Method java/util/Scanner <init> (Ljava/io/InputStream;)V\n");
-            writer.write("        invokevirtual Method java/util/Scanner nextLine ()Ljava/lang/String;\n");
+            translateInput(writer);
             return;
         }
-        // UDF call
+
+        // user defined function call
         if (ir.opStore().containsKey(op) && !isBuiltin(op)) {
-            for (IR.Var v : expr.vars()) {
-                translateValue(writer, v.val());
-            }
-            IR.OpSpec spec = ir.opStore().get(op).alternatives().getFirst();
-            String desc = jvmMethodDescriptor(spec.returnType(), spec.argTypes());
-            writer.write("        invokestatic Method " + className + " " + op + " " + desc + "\n");
-            if (spec.returnType() == IR.TY.VOID) {
-                // placeholder if used inline
-                writer.write("        iconst_0\n");
-            }
+            translateFuncCall(writer, op, expr);
             return;
         }
 
@@ -816,7 +885,7 @@ public class TranslatorJVM {
         VarInfo info = localVarMap.get(name);
         int idx = info.index;
         switch (type) {
-            case INT, BOOL -> writer.write("        istore " + idx + "\n");
+            case INT, BOOL, VOID -> writer.write("        istore " + idx + "\n");
             case FLOAT -> writer.write("        dstore " + idx + "\n");
             case STRING -> writer.write("        astore " + idx + "\n");
             default -> {}
@@ -832,12 +901,12 @@ public class TranslatorJVM {
         VarInfo info = localVarMap.get(name);
         int idx = info.index;
 
-        if (info.type == IR.TY.VOID) {
-            writer.write("        iconst_0\n");
-            return;
-        }
+        // if (info.type == IR.TY.VOID) {
+        //     writer.write("        iconst_0\n");
+        //     return;
+        // }
         switch (info.type) {
-            case INT, BOOL -> writer.write("        iload " + idx + "\n");
+            case INT, BOOL, VOID -> writer.write("        iload " + idx + "\n");
             case FLOAT -> writer.write("        dload " + idx + "\n");
             case STRING -> writer.write("        aload " + idx + "\n");
             default -> writer.write("        aload " + idx + "\n");
@@ -863,7 +932,7 @@ public class TranslatorJVM {
 
     private String jvmMethodDescriptor(IR.TY returnType, List<IR.TY> argTypes) {
         String args = argTypes.stream().map(TranslatorJVM::jvmType).collect(Collectors.joining());
-        String returnDesc = (returnType == IR.TY.VOID) ? "V" : jvmType(returnType);
+        String returnDesc = jvmType(returnType);
         return "(" + args + ")" + returnDesc;
     }
 
@@ -871,9 +940,13 @@ public class TranslatorJVM {
         IR.Var message = expr.vars().getFirst();
 
         writer.write("        new java/lang/RuntimeException\n");
-        writer.write("        dup\n");
+        this.dup(writer);
         translateValue(writer, message.val()); // помістити рядок на стек
         writer.write("        invokespecial Method java/lang/RuntimeException <init> (Ljava/lang/String;)V\n");
         writer.write("        athrow\n");
+    }
+
+    private void dup(FileWriter writer) throws IOException {
+        writer.write("        dup\n");
     }
 }

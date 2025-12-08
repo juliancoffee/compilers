@@ -23,17 +23,22 @@ func nestedVoid(x: Void) {
 
 func printCallVoid(x: Void) {
     print("> call void");
-    print("after", formatVoid(printVoid(x)));
+    // NOTE: printVoid returns Void, and yet still should be evaluated
+    print("after", printVoid(x));
 }
 
 func noop() {}
+
+func complexNoop() {
+    return noop();
+}
 
 //
 // == Main ==
 //
 
 func main() {
-    let x = noop();
+    let x = complexNoop();
     print("== Stored void ==");
     printVoid(x);
     smthWithVoid(5, x);
