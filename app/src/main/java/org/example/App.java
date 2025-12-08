@@ -1,5 +1,6 @@
 package org.example;
 
+// JAVA
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -7,6 +8,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+// ANTLR
+import generated.MS2Lexer;
+import generated.MS2Parser;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+
+// UTILS
 import com.google.gson.GsonBuilder;
 import static utils.AnsiColors.*;
 
@@ -27,7 +35,8 @@ class App {
             if (lexer == null) return;
 
             // 3. Syntax Analysis
-            ST tree = runParser(lexer);
+            // ST tree = runParser(lexer);
+            ST tree = runGeneratedParser(source.code);
             if (tree == null) return;
 
             // 4. Semantic Analysis
@@ -120,6 +129,29 @@ class App {
     // ==========================================================
     // STAGE 3: PARSER
     // ==========================================================
+
+    private static ST runGeneratedParser(String source) {
+        try {
+            // 2. Lexer (Raw string -> Tokens)
+            MS2Lexer lexer = new MS2Lexer(CharStreams.fromString(source));
+            CommonTokenStream tokens = new CommonTokenStream(lexer);
+
+            // 3. Parser (Tokens -> Parse Tree)
+            MS2Parser parser = new MS2Parser(tokens);
+            MS2Parser.ProgramContext parseTree = parser.program(); // 'program' is your start rule
+
+            // 4. Visitor (Parse Tree -> Your AST)
+            ANTLRConverter converter = new ANTLRConverter();
+            ST ast = (ST) converter.visit(parseTree);
+
+            // 5. Success!
+            System.out.println("AST Generated Successfully!");
+            return ast;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
     private static ST runParser(Lexer lexer) {
         // Requires tokenTable and lineIndex from lexer
