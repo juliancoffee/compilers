@@ -132,8 +132,18 @@ callExpr
 
 // --- Primitives ---
 
+TYPE_INT    : 'Int';
+TYPE_FLOAT  : 'Double';
+TYPE_BOOL   : 'Bool';
+TYPE_STRING : 'String';
+TYPE_VOID   : 'Void';
+
 type
-    : 'Int' | 'Float' | 'Double' | 'Bool' | 'String' | 'Void'
+    : TYPE_INT
+    | TYPE_FLOAT
+    | TYPE_BOOL
+    | TYPE_STRING
+    | TYPE_VOID
     ;
 
 literal

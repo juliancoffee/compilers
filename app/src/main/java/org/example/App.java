@@ -36,7 +36,7 @@ class App {
 
             // 3. Syntax Analysis
             // ST tree = runParser(lexer);
-            ST tree = runGeneratedParser(source.code);
+            ST tree = runGeneratedParser(source.code, lexer);
             if (tree == null) return;
 
             // 4. Semantic Analysis
@@ -130,7 +130,7 @@ class App {
     // STAGE 3: PARSER
     // ==========================================================
 
-    private static ST runGeneratedParser(String source) {
+    private static ST runGeneratedParser(String source, Lexer lex) {
         try {
             // 2. Lexer (Raw string -> Tokens)
             MS2Lexer lexer = new MS2Lexer(CharStreams.fromString(source));
@@ -138,11 +138,17 @@ class App {
 
             // 3. Parser (Tokens -> Parse Tree)
             MS2Parser parser = new MS2Parser(tokens);
-            MS2Parser.ProgramContext parseTree = parser.program(); // 'program' is your start rule
+            MS2Parser.ProgramContext parseTree = parser.program();
+            // System.out.println(parseTree.toStringTree(parser));
 
             // 4. Visitor (Parse Tree -> Your AST)
             ANTLRConverter converter = new ANTLRConverter();
             ST ast = (ST) converter.visit(parseTree);
+
+            // Print Tree logic
+            var printer = new PrinterST(lex.lineIndex);
+            var prettytree = printer.print(ast);
+            System.out.println(prettytree);
 
             // 5. Success!
             System.out.println("AST Generated Successfully!");
@@ -193,6 +199,7 @@ class App {
             var prettyrep = printerIR.print(typer.ir);
             System.err.println(prettyrep);
             System.err.println(e.getMessage());
+            e.printStackTrace();
             return null;
         }
 

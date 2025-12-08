@@ -3,14 +3,10 @@ func addDouble() -> Double {
 }
 
 func add() -> Int {
-    return 5.0;
+    return 5;
 }
 
 func main() {
-    while (1 < 2) {
-        addDouble();
-    }
-    while (1 < 2) {
-        add();
-    }
+    let x = add();
+    print(x);
 }
