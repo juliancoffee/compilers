@@ -4,7 +4,7 @@ func addAndFormat(val: Double) -> Double {
     print("BaseValue =", baseValue);
     let b = 5.0;
     let sum = val + b + baseValue;
-    print("Сума для b =", b, "і val =", val, "становить", sum);
+    print("Сума для b " + "=", b, "і val =", val, "становить", sum);
     return sum;
 }
 func calculate(a: Int) -> Double {

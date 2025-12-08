@@ -8,12 +8,12 @@ func add() -> Int {
 
 func main() {
     var x = 0;
-    while (x < 2) {
+    while (x < 10 ** 8) {
         x = x + 1;
         addDouble();
     }
     x = 0;
-    while (x < 2) {
+    while (x < 10 ** 8) {
         x = x + 1;
         add();
     }
