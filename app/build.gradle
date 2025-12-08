@@ -7,8 +7,8 @@
  */
 
 plugins {
-    // Apply the application plugin to add support for building a CLI application in Java.
     id 'application'
+    id 'antlr'
 }
 
 repositories {
@@ -33,6 +33,10 @@ dependencies {
 
     // logging
     implementation 'org.apache.logging.log4j:log4j-core:2.23.1'
+
+    // antlr4
+    antlr "org.antlr:antlr4:4.13.1"
+    implementation "org.antlr:antlr4-runtime:4.13.1"
 }
 
 testing {
@@ -45,8 +49,16 @@ testing {
     }
 }
 
+generateGrammarSource {
+    arguments += ["-package", "generated"]
+    arguments += ["-visitor", "-no-listener"]
+}
+
 sourceSets {
     main {
+        java {
+            srcDirs += ["build/generated-sources/antlr/main"]
+        }
         resources {
             srcDirs = ['resources/main']
         }

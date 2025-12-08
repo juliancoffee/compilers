@@ -1,17 +1,252 @@
 package org.example;
 
+// JAVA
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import com.google.gson.GsonBuilder;
 import java.util.*;
 
+// ANTLR
+import generated.MS2Lexer;
+import generated.MS2Parser;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+
+// UTILS
+import com.google.gson.GsonBuilder;
 import static utils.AnsiColors.*;
 
 class App {
+
+    // ==========================================================
+    // MAIN PIPELINE
+    // ==========================================================
+
+    public static void main(String[] args) {
+        try {
+            // 1. Input Setup
+            SourceInput source = getSourceCode(args);
+            if (source == null) return;
+
+            // 2. Lexical Analysis
+            Lexer lexer = runLexer(source.code);
+            if (lexer == null) return;
+
+            // 3. Syntax Analysis
+            // ST tree = runParser(lexer);
+            ST tree = runGeneratedParser(source.code, lexer);
+            if (tree == null) return;
+
+            // 4. Semantic Analysis
+            Typer typer = runSemanticAnalysis(tree, lexer.lineIndex);
+            if (typer == null) return;
+
+            // 5. Code Generation
+            runCodeGeneration(typer, source.fileName);
+
+        } catch (IOException e) {
+            System.err.println("Critical I/O Error: " + e.getMessage());
+        }
+    }
+
+    // ==========================================================
+    // STAGE 1: INPUT HANDLING
+    // ==========================================================
+
+    private record SourceInput(String code, String fileName) {}
+
+    private static SourceInput getSourceCode(String[] args) throws IOException {
+        String code;
+        String inputFileName = "fromCode";
+
+        if (args.length > 0) {
+            Path path = Paths.get(args[0]);
+            if (!Files.exists(path)) {
+                System.err.println("Cannot find file: " + args[0]);
+                System.err.println("Current dir: " + System.getProperty("user.dir"));
+                return null;
+            }
+
+            code = Files.readString(path, StandardCharsets.UTF_8);
+            inputFileName = path.getFileName().toString();
+            int dotIndex = inputFileName.lastIndexOf('.');
+            if (dotIndex > 0) {
+                inputFileName = "_" + inputFileName.substring(0, dotIndex);
+            }
+        } else {
+            // Default code for testing
+            code = """
+                let debugNums = false;
+                let debugFormat = false;
+                func wrap(s: String) -> String { return "'" + s + "'"; }
+
+                func len(s: String) -> Int {
+                    var counter = 0;
+                    for char in s {
+                        counter = counter + 1;
+                    }
+                    return counter;
+                }
+
+                func testLen() {
+                    print("== Length ==");
+                    let nums = "12345";
+                    print("Len of", wrap(nums), "=", len(nums));
+                    print("Len of", wrap(""), "=", len(""));
+                }
+
+                func main() {
+                    testLen();
+                }
+                """;
+        }
+        return new SourceInput(code, inputFileName);
+    }
+
+    // ==========================================================
+    // STAGE 2: LEXER
+    // ==========================================================
+
+    private static Lexer runLexer(String code) {
+        var lexer = new Lexer(code);
+        try {
+            lexer.lex();
+            System.out.println("\nЛексичний аналіз завершено успішно");
+        } catch (RuntimeException e) {
+            System.out.println("\nПомилка під час лексичного аналізу");
+            System.err.println(e.getMessage());
+            return null;
+        }
+
+        printTokenTable(lexer.tokenTable, lexer.lineIndex);
+        System.out.println("\nColorized output:");
+        colorizeAndPrint(code, lexer.tokenTable);
+        return lexer;
+    }
+
+    // ==========================================================
+    // STAGE 3: PARSER
+    // ==========================================================
+
+    private static ST runGeneratedParser(String source, Lexer lex) {
+        try {
+            // 2. Lexer (Raw string -> Tokens)
+            MS2Lexer lexer = new MS2Lexer(CharStreams.fromString(source));
+            CommonTokenStream tokens = new CommonTokenStream(lexer);
+
+            // 3. Parser (Tokens -> Parse Tree)
+            MS2Parser parser = new MS2Parser(tokens);
+            MS2Parser.ProgramContext parseTree = parser.program();
+            // System.out.println(parseTree.toStringTree(parser));
+
+            // 4. Visitor (Parse Tree -> Your AST)
+            ANTLRConverter converter = new ANTLRConverter();
+            ST ast = (ST) converter.visit(parseTree);
+
+            // Print Tree logic
+            var printer = new PrinterST(lex.lineIndex);
+            var prettytree = printer.print(ast);
+            System.out.println(prettytree);
+
+            // 5. Success!
+            System.out.println("AST Generated Successfully!");
+            return ast;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static ST runParser(Lexer lexer) {
+        // Requires tokenTable and lineIndex from lexer
+        var parser = new Parser(lexer.tokenTable, lexer.lineIndex);
+        try {
+            parser.parse();
+            System.out.println("\nСинтаксичний аналіз завершено успішно");
+        } catch (RuntimeException e) {
+            System.out.println("\nПомилка під час синтаксичного аналізу");
+            if (parser.biggestError().isPresent()) {
+                System.err.println(parser.biggestError().get());
+            } else {
+                System.err.println(e.getMessage());
+            }
+            return null;
+        }
+
+        // Print Tree logic
+        var printer = new PrinterST(lexer.lineIndex);
+        var prettytree = printer.print(parser.parseTree);
+        System.out.println(prettytree);
+
+        return parser.parseTree;
+    }
+
+    // ==========================================================
+    // STAGE 4: SEMANTIC ANALYSIS
+    // ==========================================================
+
+    private static Typer runSemanticAnalysis(ST parseTree, ArrayList<Integer> lineIndex) {
+        var typer = new Typer(parseTree, lineIndex);
+        var printerIR = new PrinterIR(lineIndex);
+
+        try {
+            typer.typecheck();
+            System.out.println("\nСемантичний аналіз завершено успішно");
+        } catch (RuntimeException e) {
+            System.out.println("\nПомилка під час семантичного аналізу");
+            var prettyrep = printerIR.print(typer.ir);
+            System.err.println(prettyrep);
+            System.err.println(e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+
+        var prettyrep = printerIR.print(typer.ir);
+        System.out.println(prettyrep);
+        System.out.println("\nПрограма пройшла всі етапи аналізу успішно!");
+        return typer;
+    }
+
+    // ==========================================================
+    // OPTIONAL: POSTFIX GENERATION
+    // ==========================================================
+
+    private static void runPostfixGeneration(Typer typer) {
+        // Assuming your Postfix translator class is named 'Translator'
+        // based on the original commented-out code.
+        var translator = new Translator(typer.ir); 
+        String outputDir = "sample/postfix";
+
+        try {
+            translator.generate(outputDir);
+            System.out.println("\nГенерація postfix коду завершена успішно!");
+        } catch (IOException e) {
+            System.err.println("\nПомилка під час генерації postfix коду: " + e.getMessage());
+        }
+    }
+
+    // ==========================================================
+    // STAGE 5: CODE GENERATION
+    // ==========================================================
+
+    private static void runCodeGeneration(Typer typer, String inputFileName) {
+        var translator = new TranslatorJVM(typer.ir, inputFileName);
+        String outputDir = "sample/jvm/in";
+
+        try {
+            translator.generate(outputDir);
+            System.out.println("\nГенерація JVM асемблерного файлу (.j) завершена успішно!");
+        } catch (IOException e) {
+            System.err.println("\nПомилка під час генерації .j файлу: " + e.getMessage());
+        }
+    }
+
+    // ==========================================================
+    // UTILITIES (Printing & Colors)
+    // ==========================================================
+
     private static void printTokenTable(
         TreeMap<Pair<Integer, Integer>, Token> tokenTable,
         ArrayList<Integer> lineIndex
@@ -88,9 +323,6 @@ class App {
         }
         System.out.println("-----------------------------------------------------------------------");
     }
-    /*
-     * ANSI escape codes for colors
-     */
 
     private static String getColorForToken(Token token) {
         return switch (token) {
@@ -148,133 +380,6 @@ class App {
         if (lastPos < sourceCode.length()) {
             System.out.print(sourceCode.substring(lastPos));
         }
-    }
-
-    public static void main(String[] args) throws IOException {
-        String code;
-        String inputFileName = "fromCode";
-
-        if (args.length > 0) {
-            Path path = Paths.get(args[0]);
-            code = Files.readString(path, StandardCharsets.UTF_8);
-
-            if (code == null) {
-                System.err.println("Cannot find file: " + args[0]);
-                System.err.println(System.getProperty("user.dir"));
-                return;
-            }
-            inputFileName = path.getFileName().toString();
-            int dotIndex = inputFileName.lastIndexOf('.');
-            if (dotIndex > 0) {
-                inputFileName = "_" + inputFileName.substring(0, dotIndex);
-            }
-        } else {
-            // Default code
-            code = """
-let debugNums = false;
-let debugFormat = false;
-func wrap(s: String) -> String { return "'" + s + "'"; }
-
-func len(s: String) -> Int {
-    var counter = 0;
-    for char in s {
-        counter = counter + 1;
-    }
-    return counter;
-}
-
-func testLen() {
-    print("== Length ==");
-    let nums = "12345";
-    print("Len of", wrap(nums), "=", len(nums));
-    print("Len of", wrap(""), "=", len(""));
-}
-
-
-func main() {
-    testLen();
-}
-""";
-        }
-
-        var lexer = new Lexer(code);
-        try {
-            lexer.lex();
-            System.out.println("\nЛексичний аналіз завершено успішно");
-        } catch (RuntimeException e) {
-            System.out.println("\nПомилка під час лексичного аналізу");
-            System.err.println(e.getMessage());
-            return; // зупинка якщо лексер впав
-        }
-
-        printTokenTable(lexer.tokenTable, lexer.lineIndex);
-        System.out.println("\nColorized output:");
-        colorizeAndPrint(code, lexer.tokenTable);
-
-        // СИНТАКСИЧНИЙ АНАЛІЗ
-        var parser = new Parser(lexer.tokenTable, lexer.lineIndex);
-        try {
-            parser.parse();
-            System.out.println("\nСинтаксичний аналіз завершено успішно");
-        } catch (RuntimeException e) {
-            System.out.println("\nПомилка під час синтаксичного аналізу");
-            if (parser.biggestError().isPresent()) {
-                System.err.println(parser.biggestError().get());
-            } else {
-                System.err.println(e.getMessage());
-            }
-            return;
-        }
-
-        var gson = new GsonBuilder()
-                .registerTypeAdapter(Optional.class, new OptionalAdapter())
-                .setPrettyPrinting()
-                .create();
-
-        var printer = new PrinterST(lexer.lineIndex);
-        var prettytree = printer.print(parser.parseTree);
-        System.out.println(prettytree);
-
-        // СЕМАНТИЧНИЙ АНАЛІЗ
-        var typer = new Typer(parser.parseTree, lexer.lineIndex);
-        var printerIR = new PrinterIR(lexer.lineIndex);
-        try {
-            typer.typecheck();
-            System.out.println("\nСемантичний аналіз завершено успішно");
-        } catch (RuntimeException e) {
-            System.out.println("\nПомилка під час семантичного аналізу");
-            var prettyrep = printerIR.print(typer.ir);
-            System.err.println(prettyrep);
-            System.err.println(e.getMessage());
-            return;
-        }
-
-        var prettyrep = printerIR.print(typer.ir);
-        System.out.println(prettyrep);
-        System.out.println("\nПрограма пройшла всі етапи аналізу успішно!");
-
-        // ГЕНЕРАЦІЯ POSTFIX
-//        var translator = new Translator(typer.ir);
-//        String outputDir = "sample/postfix";
-//        String mainModule = "main";
-//        try {
-//            translator.generate(outputDir);
-//            System.out.println("\nГенерація postfix коду завершена успішно!");
-//        } catch (IOException e) {
-//            System.err.println("\nПомилка під час генерації postfix коду: " + e.getMessage());
-//            return;
-//        }
-
-        var translator = new TranslatorJVM(typer.ir, inputFileName);
-        String outputDir = "sample/jvm/in";
-        try {
-            translator.generate(outputDir);
-            System.out.println("\nГенерація JVM асемблерного файлу (.j) завершена успішно!");
-        } catch (IOException e) {
-            System.err.println("\nПомилка під час генерації .j файлу: " + e.getMessage());
-            return;
-        }
-
     }
 }
 //./gradlew run --args="sample/basic.ms2"

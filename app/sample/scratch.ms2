@@ -1,16 +1,4 @@
-func addDouble() -> Double {
-    return 5.0;
-}
-
-func add() -> Int {
-    return 5.0;
-}
-
 func main() {
-    while (1 < 2) {
-        addDouble();
-    }
-    while (1 < 2) {
-        add();
-    }
+    let x = 2 ** 3 ** 2;
+    print(x);
 }
